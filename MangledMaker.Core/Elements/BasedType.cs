@@ -12,22 +12,18 @@ namespace MangledMaker.Core.Elements
         }
 
         public BasedType(ComplexElement parent)
-            : base(parent)
-        {
+            : base(parent) =>
             this.BasedName = new ScopedName(this);
-        }
 
         public unsafe BasedType(ComplexElement parent, ref char* pSource)
-            : base(parent)
-        {
+            : base(parent) =>
             this.Parse(ref pSource);
-        }
 
         [Setting]
         public BasedTypeMode Mode { get; set; }
 
         [Child]
-        public ScopedName BasedName { get; private set; }
+        public ScopedName? BasedName { get; private set; }
 
 
         protected override DecoratedName GenerateName()
@@ -38,7 +34,7 @@ namespace MangledMaker.Core.Elements
                 case BasedTypeMode.Void:
                     result.Append("void");
                     break;
-                case BasedTypeMode.Named:
+                case BasedTypeMode.Named when this.BasedName is not null:
                     result.Append(this.BasedName.Name);
                     break;
             }
@@ -60,7 +56,7 @@ namespace MangledMaker.Core.Elements
                     break;
                 case '2':
                     this.Mode = BasedTypeMode.Named;
-                    this.BasedName = new ScopedName(this, ref pSource);
+                    this.BasedName = new(this, ref pSource);
                     break;
                 case '5':
                     this.IsInvalid = true;
@@ -71,17 +67,12 @@ namespace MangledMaker.Core.Elements
             }
         }
 
-        protected override DecoratedName GenerateCode()
-        {
-            switch (this.Mode)
+        protected override DecoratedName GenerateCode() =>
+            this.Mode switch
             {
-                case BasedTypeMode.Void:
-                    return new DecoratedName(this, '0');
-                case BasedTypeMode.Named:
-                    return new DecoratedName(this, '2') + this.BasedName.Code;
-                default:
-                    return new DecoratedName(this, '1');
-            }
-        }
+                BasedTypeMode.Void => new(this, '0'),
+                BasedTypeMode.Named when this.BasedName is not null => new DecoratedName(this, '2') + this.BasedName.Code,
+                _ => new(this, '1')
+            };
     }
 }

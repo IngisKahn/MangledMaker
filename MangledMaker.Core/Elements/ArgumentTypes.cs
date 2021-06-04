@@ -18,21 +18,19 @@ namespace MangledMaker.Core.Elements
         }
 
         public unsafe ArgumentTypes(ComplexElement parent, ref char* pSource)
-            : base(parent)
-        {
+            : base(parent) =>
             this.Parse(ref pSource);
-        }
 
         [Setting]
         public ArgumentMode Mode { get; set; }
 
-        [Child]
-        public ArgumentList ArgumentList { get; private set; }
+        private ArgumentList? argumentList;
 
-        protected override void CreateEmptyElements()
+        [Child]
+        public ArgumentList ArgumentList
         {
-            if (this.ArgumentList == null)
-                this.ArgumentList = new ArgumentList(this);
+            get => this.argumentList ??= new(this);
+            private set => this.argumentList = value;
         }
 
         protected override DecoratedName GenerateName()
@@ -40,13 +38,13 @@ namespace MangledMaker.Core.Elements
             switch (this.Mode)
             {
                 case ArgumentMode.Void:
-                    return new DecoratedName(this, "void");
+                    return new(this, "void");
                 case ArgumentMode.Ellipsis:
-                    return new DecoratedName(this, this.UnDecorator.DoEllipsis ? "..." : "<ellipsis>");
+                    return new(this, this.UnDecorator.DoEllipsis ? "..." : "<ellipsis>");
                 default:
                     var list = this.ArgumentList.Name;
                     if (list.Status != 0) 
-                        return new DecoratedName(list);
+                        return new(list);
                     switch (this.Mode)
                     {
                         case ArgumentMode.ListEllipsis:
@@ -71,7 +69,7 @@ namespace MangledMaker.Core.Elements
                     this.Mode = ArgumentMode.Ellipsis;
                     return;
                 default:
-                    this.ArgumentList = new ArgumentList(this, ref pSource);
+                    this.ArgumentList = new(this, ref pSource);
                     if (this.ArgumentList.Name.Status == NodeStatus.None)
                         switch (*pSource)
                         {
@@ -95,7 +93,7 @@ namespace MangledMaker.Core.Elements
 
         protected override DecoratedName GenerateCode()
         {
-            var code = new DecoratedName(this);
+            DecoratedName code = new(this);
             switch (this.Mode)
             {
                 case ArgumentMode.Void:

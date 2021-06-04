@@ -32,10 +32,13 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public ArgumentTypes ArgumentType { get; set; }
 
-        [Child]
-        public PrimaryDataType? Type { get; private set; }
+        private PrimaryDataType? type;
 
-        protected override void CreateEmptyElements() => this.Type ??= new PrimaryDataType(this, new DecoratedName());
+        [Child] public PrimaryDataType Type
+        {
+            get => this.type ??= new(this, new DecoratedName());
+            private set => this.type = value;
+        }
 
         protected override DecoratedName GenerateName()
         {
@@ -54,7 +57,7 @@ namespace MangledMaker.Core.Elements
                 case ArgumentTypes.Saved10:
                     return this.UnDecorator.ArgList[(int) this.ArgumentType];
                 case ArgumentTypes.Type:
-                    result.Assign(this.Type?.Name ?? throw new InvalidOperationException());
+                    result.Assign(this.Type.Name);
                     break;
             }
 
@@ -71,7 +74,7 @@ namespace MangledMaker.Core.Elements
             }
             else
             {
-                this.Type = new PrimaryDataType(this, ref pSource, new DecoratedName());
+                this.Type = new(this, ref pSource, new DecoratedName());
                 this.ArgumentType = ArgumentTypes.Type;
                 var result = this.Type.Name;
                 if (result.Length > 1 && !this.UnDecorator.ArgList.IsFull)
@@ -97,7 +100,7 @@ namespace MangledMaker.Core.Elements
                     result.Assign((char) ((int) this.ArgumentType + '0'));
                     break;
                 case ArgumentTypes.Type:
-                    result.Assign(this.Type.Code);
+                    result.Assign(this.Type.Code ?? throw new InvalidOperationException());
                     break;
             }
             return result;

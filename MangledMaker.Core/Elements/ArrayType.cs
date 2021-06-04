@@ -31,82 +31,62 @@ namespace MangledMaker.Core.Elements
         //    }
         //}
 
-        private readonly List<Dimension> dimensions = new List<Dimension>();
+        private readonly List<Dimension> dimensions = new();
         private bool isMissing;
 
-        private PrimaryDataType primaryDataType;
+        private PrimaryDataType? primaryDataType;
 
-        private BasicDataType unknownSizedType;
+        private BasicDataType? unknownSizedType;
 
         public ArrayType(ComplexElement parent, DecoratedName superType)
-            : base(parent)
-        {
+            : base(parent) =>
             this.SuperType = superType;
-        }
 
         public unsafe ArrayType(ComplexElement parent, ref char* pSource,
                                 DecoratedName superType)
-            : this(parent, superType)
-        {
+            : this(parent, superType) =>
             this.Parse(ref pSource);
-        }
 
         [Child]
-        public BasicDataType UnknownSizedType
-        {
-            get { return this.dimensions.Count < 1 ? this.unknownSizedType : null; }
-        }
+        public BasicDataType? UnknownSizedType => this.dimensions.Count < 1 ? this.unknownSizedType ??= new(this, this.SuperType) : null;
 
         [Child]
-        public List<Dimension> Dimensions
-        {
-            get { return this.dimensions.Count > 0 ? this.dimensions : null; }
-        }
+        public List<Dimension>? Dimensions => this.dimensions.Count > 0 ? this.dimensions : null;
 
         [Child]
-        public PrimaryDataType PrimaryDataType
-        {
-            get { return this.dimensions.Count > 0 ? this.primaryDataType : null; }
-        }
+        public PrimaryDataType? PrimaryDataType => this.dimensions.Count > 0 ? this.primaryDataType ??= new(this, this.SuperType) : null;
 
         [Input]
         public DecoratedName SuperType { get; set; }
 
-        #region ISpawnsChildren Members
-
-        public Element CreateChild()
-        {
-            return new Dimension(this, 0);
-        }
-
-        #endregion
+        public Element CreateChild() => new Dimension(this, 0);
 
         private static unsafe int GetNumberOfDimensions(ref char* pSource)
         {
-            if (*pSource == '\0')
-                return 0;
-            if ((*pSource >= '0') && (*pSource <= '9'))
-                return *pSource - '/';
-            var result = 0;
-            for (; *pSource != '@'; pSource++)
+            switch (*pSource)
             {
-                if (*pSource == '\0')
+                case '\0':
                     return 0;
-                if ((*pSource < 'A') || (*pSource > 'P'))
-                    return -1;
-                result <<= 4;
-                result += *pSource - 'A';
+                case >= '0' and <= '9':
+                    return *pSource - '/';
             }
 
-            return *pSource++ == '@' ? result : -1;
-        }
+            var result = 0;
+            for (; *pSource != '@'; pSource++)
+                switch (*pSource)
+                {
+                    case '\0':
+                        return 0;
+                    case < 'A':
+                    case > 'P':
+                        return -1;
+                    default:
+                        result <<= 4;
+                        result += *pSource - 'A';
+                        break;
+                }
 
-        protected override void CreateEmptyElements()
-        {
-            if (this.unknownSizedType == null)
-                this.unknownSizedType = new BasicDataType(this, this.SuperType);
-            if (this.primaryDataType == null)
-                this.primaryDataType = new PrimaryDataType(this, this.SuperType);
+            return *pSource++ == '@' ? result : -1;
         }
 
         protected override DecoratedName GenerateName()
@@ -117,17 +97,17 @@ namespace MangledMaker.Core.Elements
                 var missing = new DecoratedName(this, '[') + NodeStatus.Truncated + ']';
                 if (!this.SuperType.IsEmpty)
                     missing.Prepend('(' + new DecoratedName(this, this.SuperType) + ')');
-                this.unknownSizedType.SuperType = missing;
+                (this.unknownSizedType ??= new(this, this.SuperType)).SuperType = missing;
                 return this.unknownSizedType.Name;
             }
 
             if (dimensionCount == 0)
             {
-                this.unknownSizedType.SuperType = new DecoratedName(this, '[') + NodeStatus.Truncated + ']';
+                (this.unknownSizedType ??= new(this, this.SuperType)).SuperType = new DecoratedName(this, '[') + NodeStatus.Truncated + ']';
                 return this.unknownSizedType.Name;
             }
 
-            var indices = new DecoratedName();
+            DecoratedName indices = new();
             if (this.SuperType.IsArray)
                 indices.Append("[]");
 
@@ -139,7 +119,7 @@ namespace MangledMaker.Core.Elements
                     indices.Assign(this.SuperType + indices);
                 else
                     indices.Assign('(' + new DecoratedName(this, this.SuperType) + ')' + indices);
-            this.primaryDataType.SuperType = indices;
+            (this.primaryDataType ??= new(this, this.SuperType)).SuperType = indices;
             var result = this.primaryDataType.Name;
             result.IsArray = true;
             return result;
@@ -152,21 +132,21 @@ namespace MangledMaker.Core.Elements
             if (*pSource == '\0')
             {
                 this.isMissing = true;
-                this.unknownSizedType = new BasicDataType(this, ref pSource, this.SuperType);
+                this.unknownSizedType = new(this, ref pSource, this.SuperType);
                 return;
             }
 
             this.isMissing = false;
-            var count = Math.Max(GetNumberOfDimensions(ref pSource), 0);
+            var count = Math.Max(ArrayType.GetNumberOfDimensions(ref pSource), 0);
             //dimensionCount = count;
             if (count == 0)
-                this.unknownSizedType = new BasicDataType(this, ref pSource, this.SuperType);
+                this.unknownSizedType = new(this, ref pSource, this.SuperType);
             else
             {
                 while (count-- != 0)
-                    this.dimensions.Add(new Dimension(this, ref pSource, false));
+                    this.dimensions.Add(new(this, ref pSource, false));
 
-                this.primaryDataType = new PrimaryDataType(this, ref pSource, this.SuperType);
+                this.primaryDataType = new(this, ref pSource, this.SuperType);
             }
         }
 
@@ -174,10 +154,10 @@ namespace MangledMaker.Core.Elements
         {
             var dimensionCount = this.dimensions.Count;
             if (this.isMissing) 
-                return new DecoratedName(this, '\0');
-            var code = new DecoratedName(this);
+                return new(this, '\0');
+            DecoratedName code = new(this);
 
-            if (dimensionCount > 0 && dimensionCount < 10)
+            if (dimensionCount is > 0 and < 10)
                 code.Assign((char)(dimensionCount + '0'));
             else
             {
@@ -190,13 +170,14 @@ namespace MangledMaker.Core.Elements
                 code.Append('@');
             }
 
-            if (dimensionCount == 0)
+            if (dimensionCount == 0 && this.unknownSizedType is not null)
                 code.Append(this.unknownSizedType.Code);
             else
             {
                 foreach (var d in this.dimensions)
                     code.Append(d.Code);
-                code.Append(this.primaryDataType.Code);
+                if (this.primaryDataType is not null)
+                    code.Append(this.primaryDataType.Code);
             }
             return code;
         }

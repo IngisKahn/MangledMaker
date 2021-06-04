@@ -7,12 +7,9 @@ namespace MangledMaker.Core.Elements
 
     public abstract class Element
     {
-        protected Element(Element parent)
-        {
-            this.Parent = parent;
-        }
+        protected Element(Element parent) => this.Parent = parent;
 
-        public Element Parent { get; private set; }
+        public Element Parent { get; }
 
         protected bool IsTruncated { private get; set; }
 

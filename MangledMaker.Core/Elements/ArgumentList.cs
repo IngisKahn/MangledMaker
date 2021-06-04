@@ -8,29 +8,20 @@ namespace MangledMaker.Core.Elements
     {
         public ArgumentList(ComplexElement parent)
             : base(parent)
-        {
-            this.Arguments = new List<Argument>();
-        }
+        { }
 
         public unsafe ArgumentList(ComplexElement parent, ref char* pSource)
-            : base(parent)
-        {
-            this.Arguments = new List<Argument>();
+            : base(parent) =>
             this.Parse(ref pSource);
-        }
 
-        [Child]
-        public List<Argument> Arguments { get; set; }
+        [Child] public List<Argument> Arguments { get; } = new();
 
-        public Element CreateChild()
-        {
-            return new Argument(this);
-        }
+        public Element CreateChild() => new Argument(this);
 
         protected override DecoratedName GenerateName()
         {
             var first = true;
-            var aList = new DecoratedName(this);
+            DecoratedName aList = new(this);
 
             foreach (var arg in this.Arguments)
             {
@@ -45,14 +36,14 @@ namespace MangledMaker.Core.Elements
 
         private unsafe void Parse(ref char* pSource)
         {
-            var aList = new DecoratedName();
+            DecoratedName aList = new();
             this.Arguments.Clear();
             while (aList.Status == NodeStatus.None
                    && *pSource != 'Z'
                    && *pSource != '@')
                 if (*pSource != '\0')
                 {
-                    var arg = new Argument(this, ref pSource);
+                    Argument arg = new(this, ref pSource);
                     this.Arguments.Add(arg);
                     aList.Skip(arg.Name);
                 }
@@ -63,7 +54,7 @@ namespace MangledMaker.Core.Elements
 
         protected override DecoratedName GenerateCode()
         {
-            var aList = new DecoratedName();
+            DecoratedName aList = new();
 
             foreach (var arg in this.Arguments)
                 aList.Append(arg.Code);
