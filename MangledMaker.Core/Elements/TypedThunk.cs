@@ -4,15 +4,13 @@ namespace MangledMaker.Core.Elements
 
     public sealed class TypedThunk : ComplexElement
     {
-        private DecoratedName declaration;
-
         public TypedThunk(ComplexElement parent, DecoratedName declaration, DecoratedName symbol,
                           TypeEncoding typeEncoding)
             : base(parent)
         {
             this.Symbol = symbol;
             this.TypeEncoding = typeEncoding;
-            this.declaration = declaration;
+            this.Declaration = declaration;
         }
 
         public unsafe TypedThunk(ComplexElement parent, ref char* pSource,
@@ -21,7 +19,7 @@ namespace MangledMaker.Core.Elements
         {
             this.Symbol = symbol;
             this.TypeEncoding = typeEncoding;
-            this.declaration = declaration;
+            this.Declaration = declaration;
             this.Parse(ref pSource);
         }
 
@@ -29,11 +27,7 @@ namespace MangledMaker.Core.Elements
         public DecoratedName Symbol { get; set; }
 
         [Input]
-        public DecoratedName Declaration
-        {
-            get { return this.declaration; }
-            set { this.declaration = value; }
-        }
+        public DecoratedName Declaration { get; set; }
 
         [Input]
         public TypeEncoding TypeEncoding { get; set; }
@@ -59,7 +53,7 @@ namespace MangledMaker.Core.Elements
 
         protected override DecoratedName GenerateName()
         {
-            var thunkDeclaration = new DecoratedName(this, this.declaration);
+            var thunkDeclaration = new DecoratedName(this, this.Declaration);
             thunkDeclaration.Append(new DecoratedName(this, this.Symbol) + '{' + this.CallIndex.Name);
             var vCallThunkType = new DecoratedName(this, this.VirtualCallThunkType.Name);
             if (!this.UnDecorator.DoNameOnly)

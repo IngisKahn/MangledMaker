@@ -2,7 +2,7 @@ namespace MangledMaker.Core.Elements
 {
     using Attributes;
 
-    public sealed class EcsuDataType : ComplexElement
+    public sealed class UserDefinedType : ComplexElement
     {
         public enum Ecsus
         {
@@ -21,11 +21,11 @@ namespace MangledMaker.Core.Elements
 
         private bool isMissing;
 
-        public EcsuDataType(ComplexElement parent)
+        public UserDefinedType(ComplexElement parent)
             : base(parent)
         { }
 
-        public unsafe EcsuDataType(ComplexElement parent, ref char* pSource)
+        public unsafe UserDefinedType(ComplexElement parent, ref char* pSource)
             : this(parent)
         {
             this.Parse(ref pSource);

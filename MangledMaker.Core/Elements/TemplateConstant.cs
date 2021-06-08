@@ -30,8 +30,6 @@ namespace MangledMaker.Core.Elements
         private SignedDimension integer;
         private SignedDimension mantissa;
         private SignedDimension parameterIndex;
-
-        private TemplateConstantType typeCategory;
         private ZName zName;
 
         public TemplateConstant(ComplexElement parent)
@@ -46,16 +44,12 @@ namespace MangledMaker.Core.Elements
         }
 
         [Setting]
-        public TemplateConstantType TypeCategory
-        {
-            get { return this.typeCategory; }
-            set { this.typeCategory = value; }
-        }
+        public TemplateConstantType TypeCategory { get; set; }
 
         [Child]
         public SignedDimension Integer
         {
-            get { return this.typeCategory == TemplateConstantType.Integer ? this.integer : null; }
+            get { return this.TypeCategory == TemplateConstantType.Integer ? this.integer : null; }
         }
 
         [Child]
@@ -63,7 +57,7 @@ namespace MangledMaker.Core.Elements
         {
             get
             {
-                switch (this.typeCategory)
+                switch (this.TypeCategory)
                 {
                     case TemplateConstantType.Reference:
                     case TemplateConstantType.FullName:
@@ -79,13 +73,13 @@ namespace MangledMaker.Core.Elements
         [Child]
         public SignedDimension Mantissa
         {
-            get { return this.typeCategory == TemplateConstantType.Float ? this.mantissa : null; }
+            get { return this.TypeCategory == TemplateConstantType.Float ? this.mantissa : null; }
         }
 
         [Child]
         public SignedDimension Exponent
         {
-            get { return this.typeCategory == TemplateConstantType.Float ? this.exponent : null; }
+            get { return this.TypeCategory == TemplateConstantType.Float ? this.exponent : null; }
         }
 
 
@@ -94,8 +88,8 @@ namespace MangledMaker.Core.Elements
         {
             get
             {
-                return this.typeCategory == TemplateConstantType.Parameter
-                       || this.typeCategory == TemplateConstantType.NonTypeParameter
+                return this.TypeCategory == TemplateConstantType.Parameter
+                       || this.TypeCategory == TemplateConstantType.NonTypeParameter
                            ? this.parameterIndex
                            : null;
             }
@@ -106,7 +100,7 @@ namespace MangledMaker.Core.Elements
         {
             get
             {
-                switch (this.typeCategory)
+                switch (this.TypeCategory)
                 {
                     case TemplateConstantType.IndexPair:
                     case TemplateConstantType.IndexTriple:
@@ -125,7 +119,7 @@ namespace MangledMaker.Core.Elements
         {
             get
             {
-                switch (this.typeCategory)
+                switch (this.TypeCategory)
                 {
                     case TemplateConstantType.IndexPair:
                     case TemplateConstantType.IndexTriple:
@@ -142,7 +136,7 @@ namespace MangledMaker.Core.Elements
         {
             get
             {
-                switch (this.typeCategory)
+                switch (this.TypeCategory)
                 {
                     case TemplateConstantType.IndexTriple:
                     case TemplateConstantType.NamedIndexTriple:
@@ -155,7 +149,7 @@ namespace MangledMaker.Core.Elements
         [Child]
         public ZName ZName
         {
-            get { return this.typeCategory == TemplateConstantType.ZName ? this.zName : null; }
+            get { return this.TypeCategory == TemplateConstantType.ZName ? this.zName : null; }
         }
 
         protected override void CreateEmptyElements()
@@ -174,7 +168,7 @@ namespace MangledMaker.Core.Elements
         protected override DecoratedName GenerateName()
         {
             DecoratedName result;
-            switch (this.typeCategory)
+            switch (this.TypeCategory)
             {
                 case TemplateConstantType.Integer:
                     return this.integer.Name;
@@ -209,7 +203,7 @@ namespace MangledMaker.Core.Elements
                             return new DecoratedName(this, param);
                     }
                     result = new DecoratedName(this,
-                                               this.typeCategory == TemplateConstantType.Parameter
+                                               this.TypeCategory == TemplateConstantType.Parameter
                                                    ? "`template-parameter"
                                                    : "`non-type-template-parameter");
                     result.Append(index);
@@ -222,12 +216,12 @@ namespace MangledMaker.Core.Elements
                 case TemplateConstantType.NamedIndexPair:
                 case TemplateConstantType.NamedIndexTriple:
                     result = new DecoratedName('{');
-                    if (this.typeCategory >= TemplateConstantType.NamedIndex)
+                    if (this.TypeCategory >= TemplateConstantType.NamedIndex)
                     {
                         result.Append(this.fullName.Name);
                         result.Append(',');
                     }
-                    switch (this.typeCategory)
+                    switch (this.TypeCategory)
                     {
                         case TemplateConstantType.IndexPair:
                         case TemplateConstantType.NamedIndexPair:
@@ -265,23 +259,23 @@ namespace MangledMaker.Core.Elements
                     this.IsTruncated = true;
                     break;
                 case '0':
-                    this.typeCategory = TemplateConstantType.Integer;
+                    this.TypeCategory = TemplateConstantType.Integer;
                     this.integer = new SignedDimension(this, ref pSource);
                     break;
                 case '1':
                     if (*pSource == '@')
                     {
                         pSource++;
-                        this.typeCategory = TemplateConstantType.Null;
+                        this.TypeCategory = TemplateConstantType.Null;
                     }
                     else
                     {
-                        this.typeCategory = TemplateConstantType.Reference;
+                        this.TypeCategory = TemplateConstantType.Reference;
                         this.fullName = new FullName(this, ref pSource);
                     }
                     break;
                 case '2':
-                    this.typeCategory = TemplateConstantType.Float;
+                    this.TypeCategory = TemplateConstantType.Float;
                     this.mantissa = new SignedDimension(this, ref pSource);
                     this.exponent = new SignedDimension(this, ref pSource);
                     var mn = this.mantissa.Name;
@@ -292,7 +286,7 @@ namespace MangledMaker.Core.Elements
                         if (string.IsNullOrEmpty(s))
                             this.IsInvalid = true;
                         else
-                            this.typeCategory = TemplateConstantType.Float;
+                            this.TypeCategory = TemplateConstantType.Float;
                     }
                     else
                         this.IsTruncated = true;
@@ -300,7 +294,7 @@ namespace MangledMaker.Core.Elements
                 case 'D':
                 case 'Q':
                     this.parameterIndex = new SignedDimension(this, ref pSource);
-                    this.typeCategory = tempTypeCategory == 'D' ? TemplateConstantType.Parameter : TemplateConstantType.NonTypeParameter;
+                    this.TypeCategory = tempTypeCategory == 'D' ? TemplateConstantType.Parameter : TemplateConstantType.NonTypeParameter;
                     break;
                 case 'E':
                     this.fullName = new FullName(this, ref pSource);
@@ -344,7 +338,7 @@ namespace MangledMaker.Core.Elements
         {
             var result = new DecoratedName(this);
             var code = '\0';
-            switch (this.typeCategory)
+            switch (this.TypeCategory)
             {
                 case TemplateConstantType.Integer:
                     code = '0';
@@ -379,9 +373,9 @@ namespace MangledMaker.Core.Elements
                 case TemplateConstantType.NamedIndex:
                 case TemplateConstantType.NamedIndexPair:
                 case TemplateConstantType.NamedIndexTriple:
-                    if (this.typeCategory >= TemplateConstantType.NamedIndex)
+                    if (this.TypeCategory >= TemplateConstantType.NamedIndex)
                         result.Assign(this.fullName.Code);
-                    switch (this.typeCategory)
+                    switch (this.TypeCategory)
                     {
                         case TemplateConstantType.IndexPair:
                         case TemplateConstantType.NamedIndexPair:
@@ -398,7 +392,7 @@ namespace MangledMaker.Core.Elements
                             result.Append(this.index1.Code);
                             break;
                     }
-                    switch (this.typeCategory)
+                    switch (this.TypeCategory)
                     {
                         case TemplateConstantType.IndexPair:
                             code = 'F';

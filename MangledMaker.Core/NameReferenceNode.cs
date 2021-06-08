@@ -10,7 +10,7 @@ namespace MangledMaker.Core
         }
 */
 
-        public NameReferenceNode(Element parent, DecoratedName name)
+        public NameReferenceNode(Element? parent, DecoratedName? name)
             : base(parent)
         {
             if ((name != null) &&
@@ -19,21 +19,12 @@ namespace MangledMaker.Core
                 this.Reference = name;
         }
 
-        public DecoratedName Reference { get; private set; }
+        public DecoratedName? Reference { get; }
 
-        public override char LastCharacter
-        {
-            get { return this.Reference == null ? '\0' : this.Reference.LastCharacter; }
-        }
+        public override char LastCharacter => this.Reference?.LastCharacter ?? '\0';
 
-        public override int Length
-        {
-            get { return this.Reference == null ? 0 : this.Reference.Length; }
-        }
+        public override int Length => this.Reference?.Length ?? 0;
 
-        public override string ToString()
-        {
-            return this.Reference == null ? string.Empty : this.Reference.ToString();
-        }
+        public override string ToString() => this.Reference == null ? string.Empty : this.Reference.ToString();
     }
 }

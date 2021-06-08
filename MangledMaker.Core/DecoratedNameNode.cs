@@ -11,18 +11,15 @@ namespace MangledMaker.Core
         /// Creates a new instance of DecoratedNameNode
         /// </summary>
         /// <param name="parent">The name element to be represented</param>
-        protected DecoratedNameNode(Element parent)
-        {
-            this.Parent = parent;
-        }
+        protected DecoratedNameNode(Element? parent) => this.Parent = parent;
 
         // Gets the name element that this node represents
-        public Element Parent { get; private set; }
+        public Element? Parent { get; }
         
         /// <summary>
         /// Gets the next decorated name node in the list
         /// </summary>
-        public DecoratedNameNode NextNode { get; private set; }
+        public DecoratedNameNode? NextNode { get; private set; }
 
         /// <summary>
         /// Gets the number of characters in this node
@@ -38,16 +35,13 @@ namespace MangledMaker.Core
         /// Create a reference to this node
         /// </summary>
         /// <returns>A reference to the list of nodes starting with the current</returns>
-        public DecoratedNameNode Clone()
-        {
-            return new NameReferenceNode(this.Parent, new DecoratedName(this));
-        }
+        public DecoratedNameNode Clone() => new NameReferenceNode(this.Parent, new DecoratedName(this));
 
         /// <summary>
         /// Appends a node onto the end of the list of nodes
         /// </summary>
         /// <param name="node">The node to append</param>
-        public void Append(DecoratedNameNode node)
+        public void Append(DecoratedNameNode? node)
         {
             if (node == null) 
                 return;

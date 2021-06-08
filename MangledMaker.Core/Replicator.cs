@@ -9,25 +9,16 @@ namespace MangledMaker.Core
 
     public class Replicator
     {
-        private readonly DecoratedName errorName = new DecoratedName(NodeStatus.Error);
-        private readonly DecoratedName invalidName = new DecoratedName(NodeStatus.Invalid);
+        private readonly DecoratedName errorName = new(NodeStatus.Error);
+        private readonly DecoratedName invalidName = new(NodeStatus.Invalid);
         private int currentIndex = -1;
         private Element[] savedName = new Element[9];
 
-        internal bool IsFull
-        {
-            get { return this.currentIndex == 8; }
-        }
+        internal bool IsFull => this.currentIndex == 8;
 
-        internal DecoratedName this[int x]
-        {
-            get
-            {
-                if (x < 0 || x > 8)
-                    return this.errorName;
-                return x > this.currentIndex ? this.invalidName : this.savedName[x].Name;
-            }
-        }
+        internal DecoratedName this[int x] =>
+            x is < 0 or > 8 ? this.errorName :
+            x > this.currentIndex ? this.invalidName : this.savedName[x].Name;
 
         public void Append(Element rd)
         {

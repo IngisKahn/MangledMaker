@@ -6,19 +6,6 @@ namespace MangledMaker.Core
     {
         // private readonly string name;
         private readonly IList<string> parameterList;
-        private Replicator argList;
-
-        /*
-        private int currentCharacter;
-*/
-
-        private DisableOptions disableFlags;
-
-        /*
-        private string outputString;
-*/
-        private Replicator templateArgList;
-        private Replicator zNameList = new Replicator();
 
         public UnDecorator()
             : this(null)
@@ -30,135 +17,71 @@ namespace MangledMaker.Core
         {
         }
 
-        public UnDecorator(IList<string> pGetParameter, DisableOptions disable = DisableOptions.None)
+        public UnDecorator(IList<string>? pGetParameter, DisableOptions disable = DisableOptions.None)
         {
             //this.name = decoratedName + '\0';
             this.ArgList = this;
             this.parameterList = pGetParameter ?? new List<string>();
-            this.disableFlags = disable;
+            this.DisableFlags = disable;
         }
 
-        internal Replicator ZNameList
-        {
-            get { return this.zNameList; }
-            set { this.zNameList = value; }
-        }
+        internal Replicator ZNameList { get; set; } = new();
 
-        internal Replicator ArgList
-        {
-            get { return this.argList; }
-            set { this.argList = value; }
-        }
+        internal Replicator ArgList { get; set; }
 
-        internal Replicator TemplateArgList
-        {
-            get { return this.templateArgList; }
-            set { this.templateArgList = value; }
-        }
+        internal Replicator TemplateArgList { get; set; } = new();
 
         internal bool ExplicitTemplateParams { get; set; }
 
         public bool CanGetTemplateArgumentList { get; set; }
 
-        public DisableOptions DisableFlags
-        {
-            get { return this.disableFlags; }
-            set { this.disableFlags = value; }
-        }
+        public DisableOptions DisableFlags { get; set; }
 
         public override void Reset()
         {
             base.Reset();
             this.ExplicitTemplateParams = false;
             this.CanGetTemplateArgumentList = false;
-            this.zNameList = new Replicator();
-            this.argList = this;
-            this.templateArgList = new Replicator();
+            this.ZNameList = new();
+            this.ArgList = this;
+            this.TemplateArgList = new();
         }
 
-        public string GetParameter(int index)
-        {
-            return this.parameterList.Count > index ? this.parameterList[index] : null;
-        }
+        public string? GetParameter(int index) => this.parameterList.Count > index ? this.parameterList[index] : null;
 
         #region DoFlags
 
-        public bool DoAccessSpecifiers
-        {
-            get { return (this.disableFlags & DisableOptions.NoAccessSpecifiers) == 0; }
-        }
+        public bool DoAccessSpecifiers => (this.DisableFlags & DisableOptions.NoAccessSpecifiers) == 0;
 
-        public bool DoAllocationModel
-        {
-            get { return (this.disableFlags & DisableOptions.NoAllocationModel) == 0; }
-        }
+        public bool DoAllocationModel => (this.DisableFlags & DisableOptions.NoAllocationModel) == 0;
 
-        public bool DoAllocationLanguage
-        {
-            get { return (this.disableFlags & DisableOptions.NoAllocationLanguage) == 0; }
-        }
+        public bool DoAllocationLanguage => (this.DisableFlags & DisableOptions.NoAllocationLanguage) == 0;
 
-        public bool DoEcsu
-        {
-            get { return (this.disableFlags & DisableOptions.NoComplexType) == 0; }
-        }
+        public bool DoEcsu => (this.DisableFlags & DisableOptions.NoComplexType) == 0;
 
-        public bool DoEllipsis
-        {
-            get { return (this.disableFlags & DisableOptions.NoEllipsis) == 0; }
-        }
+        public bool DoEllipsis => (this.DisableFlags & DisableOptions.NoEllipsis) == 0;
 
-        public bool DoFunctionReturns
-        {
-            get { return (this.disableFlags & DisableOptions.NoFunctionReturns) == 0; }
-        }
+        public bool DoFunctionReturns => (this.DisableFlags & DisableOptions.NoFunctionReturns) == 0;
 
-        public bool DoMemberTypes
-        {
-            get { return (this.disableFlags & DisableOptions.NoMemberType) == 0; }
-        }
+        public bool DoMemberTypes => (this.DisableFlags & DisableOptions.NoMemberType) == 0;
 
-        public bool DoMicrosoftKeywords
-        {
-            get { return (this.disableFlags & DisableOptions.NoMicrosoftKeywords) == 0; }
-        }
+        public bool DoMicrosoftKeywords => (this.DisableFlags & DisableOptions.NoMicrosoftKeywords) == 0;
 
-        public bool DoNameOnly
-        {
-            get { return (this.disableFlags & DisableOptions.NameOnly) != 0; }
-        }
+        public bool DoNameOnly => (this.DisableFlags & DisableOptions.NameOnly) != 0;
 
-        public bool DoNoIdentCharCheck
-        {
-            get { return (this.disableFlags & DisableOptions.NoIdentCharCheck) == 0; }
-        }
+        public bool DoNoIdentCharCheck => (this.DisableFlags & DisableOptions.NoIdentCharCheck) == 0;
 
-        public bool DoPtr64
-        {
-            get { return (this.disableFlags & DisableOptions.NoPtr64) == 0; }
-        }
+        public bool DoPtr64 => (this.DisableFlags & DisableOptions.NoPtr64) == 0;
 
-        public bool DoThisTypes
-        {
-            get { return (this.disableFlags & DisableOptions.NoThisType) == 0; }
-        }
+        public bool DoThisTypes => (this.DisableFlags & DisableOptions.NoThisType) == 0;
 
-        public bool DoThrowTypes
-        {
-            get { return (this.disableFlags & DisableOptions.NoThrowSignatures) == 0; }
-        }
+        public bool DoThrowTypes => (this.DisableFlags & DisableOptions.NoThrowSignatures) == 0;
 
-        public bool DoTypeOnly
-        {
-            get { return (this.disableFlags & DisableOptions.NoArguments) != 0; }
-        }
+        public bool DoTypeOnly => (this.DisableFlags & DisableOptions.NoArguments) != 0;
 
-        public bool DoUnderscore
-        {
-            get { return (this.disableFlags & DisableOptions.NoLeadingUnderscores) == 0; }
-        }
+        public bool DoUnderscore => (this.DisableFlags & DisableOptions.NoLeadingUnderscores) == 0;
 
-/*
+        /*
         public bool DoReturnUdtModel
         {
             get { return (this.disableFlags & DisableOptions.NoReturnUdtModel) == 0; }
@@ -175,10 +98,7 @@ namespace MangledMaker.Core
         /// <summary>
         ///   Returns true if the NoSpecialSymbols flag is set.
         /// </summary>
-        public bool HaveTemplateParameters
-        {
-            get { return (this.disableFlags & DisableOptions.NoSpecialSymbols) != 0; }
-        }
+        public bool HaveTemplateParameters => (this.DisableFlags & DisableOptions.NoSpecialSymbols) != 0;
 
         #endregion
 

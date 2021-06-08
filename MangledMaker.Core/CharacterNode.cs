@@ -11,25 +11,14 @@ namespace MangledMaker.Core
         private readonly char character;
 
         //public CharacterNode(char character) : this(null, character) { }
-        public CharacterNode(Element parent, char character)
-            : base(parent)
-        {
+        public CharacterNode(Element? parent, char character)
+            : base(parent) =>
             this.character = character;
-        }
 
-        public override char LastCharacter
-        {
-            get { return this.character; }
-        }
+        public override char LastCharacter => this.character;
 
-        public override int Length
-        {
-            get { return 1; }
-        }
+        public override int Length => 1;
 
-        public override string ToString()
-        {
-            return this.character.ToString(CultureInfo.InvariantCulture);
-        }
+        public override string ToString() => this.character.ToString(CultureInfo.InvariantCulture);
     }
 }

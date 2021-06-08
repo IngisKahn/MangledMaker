@@ -29,25 +29,40 @@ namespace MangledMaker.Core.Elements
 
         private ExtendedTypes extendedType;
         private bool isMissing;
-        private PointerType pointerType;
+        private PointerType? pointerType;
+
+        [Child]
+        public PointerType? PointerType
+        {
+            get
+            {
+                switch (this.type)
+                {
+                    case Types.Pointer:
+                    case Types.ConstPointer:
+                    case Types.VolatilePointer:
+                    case Types.ConstVolatilePointer:
+                        return
+                            this.pointerType ??= new PointerType(this, this.SuperType, new());
+                    default:
+                        return null;
+                }
+            }
+        }
         private PointerTypeArray pointerTypeArray;
 
         private Types type;
-        private EcsuDataType userDefinedType;
-        private BasicDataType w64Type;
+        private UserDefinedType userDefinedType;
+        private BasicDataType? w64Type;
 
         public BasicDataType(ComplexElement parent, DecoratedName superType)
-            : base(parent)
-        {
+            : base(parent) =>
             this.SuperType = superType;
-        }
 
         public unsafe BasicDataType(ComplexElement parent, ref char* pSource,
                                     DecoratedName superType)
-            : this(parent, superType)
-        {
+            : this(parent, superType) =>
             this.Parse(ref pSource);
-        }
 
         [Input]
         public DecoratedName SuperType { get; set; }
@@ -55,7 +70,7 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public Types Type
         {
-            get { return this.type; }
+            get => this.type;
             set
             {
                 this.type = value;
@@ -66,7 +81,7 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public ExtendedTypes? ExtendedType
         {
-            get { return this.type == Types.Extended ? this.extendedType : (ExtendedTypes?)null; }
+            get => this.type == Types.Extended ? this.extendedType : null;
             set
             {
                 this.extendedType = value ?? 0;
@@ -75,34 +90,14 @@ namespace MangledMaker.Core.Elements
         }
 
         [Child]
-        public BasicDataType W64Type
-        {
-            get { return this.type == Types.Extended && this.extendedType == ExtendedTypes.W64 ? this.w64Type : null; }
-        }
+        public BasicDataType? W64Type => this.type == Types.Extended && this.extendedType == ExtendedTypes.W64 ? this.w64Type ??= new BasicDataType(this, this.SuperType) : null;
 
         [Child]
-        public EcsuDataType EcsuDataType
+        public UserDefinedType UserDefinedType
         {
             get { return this.type == Types.UserDefinedType ? this.userDefinedType : null; }
         }
 
-        [Child]
-        public PointerType PointerType
-        {
-            get
-            {
-                switch (this.type)
-                {
-                    case Types.Pointer:
-                    case Types.ConstPointer:
-                    case Types.VolatilePointer:
-                    case Types.ConstVolatilePointer:
-                        return this.pointerType;
-                    default:
-                        return null;
-                }
-            }
-        }
 
         [Child]
         public PointerTypeArray PointerTypeArray
@@ -118,7 +113,7 @@ namespace MangledMaker.Core.Elements
         protected override void CreateEmptyElements()
         {
             if (this.w64Type == null) this.w64Type = new BasicDataType(this, this.SuperType);
-            if (this.userDefinedType == null) this.userDefinedType = new EcsuDataType(this);
+            if (this.userDefinedType == null) this.userDefinedType = new UserDefinedType(this);
             if (this.pointerType == null)
                 this.pointerType = new PointerType(this, this.SuperType, new DecoratedName());
             if (this.pointerTypeArray == null)
@@ -300,7 +295,7 @@ namespace MangledMaker.Core.Elements
                         case (ExtendedTypes)'Y':
                             pSource--;
                             this.type = Types.UserDefinedType;
-                            this.userDefinedType = new EcsuDataType(this, ref pSource);
+                            this.userDefinedType = new UserDefinedType(this, ref pSource);
                             break;
                         case ExtendedTypes.Int8:
                         case ExtendedTypes.Int16:
@@ -332,7 +327,7 @@ namespace MangledMaker.Core.Elements
                     {
                         pSource--;
                         this.type = Types.UserDefinedType;
-                        this.userDefinedType = new EcsuDataType(this, ref pSource);
+                        this.userDefinedType = new UserDefinedType(this, ref pSource);
                     }
                     break;
             }

@@ -8,24 +8,21 @@ namespace MangledMaker.Core
 
     public class DecoratedName : IEnumerable<DecoratedNameNode>
     {
-        private DecoratedNameNode node;
+        private DecoratedNameNode? node;
         private NodeStatus status;
 
         internal DecoratedName()
         {
         }
 
-        internal DecoratedName(Element parent)
-        {
-            this.Parent = parent;
-        }
+        internal DecoratedName(Element? parent) => this.Parent = parent;
 
         internal DecoratedName(char c)
             : this(null, c)
         {
         }
 
-        internal DecoratedName(Element parent, char c)
+        internal DecoratedName(Element? parent, char c)
             : this(parent)
         {
             if (c != '\0')
@@ -37,7 +34,7 @@ namespace MangledMaker.Core
         {
         }
 
-        internal DecoratedName(Element parent, NodeStatus st)
+        internal DecoratedName(Element? parent, NodeStatus st)
             : this(parent)
         {
             var vC = (st | NodeStatus.Truncated) == NodeStatus.Error
@@ -54,7 +51,7 @@ namespace MangledMaker.Core
         {
         }
 
-        internal DecoratedName(Element parent, DecoratedName rd)
+        internal DecoratedName(Element? parent, DecoratedName rd)
             : this(parent)
         {
             this.node = rd.node;
@@ -66,11 +63,9 @@ namespace MangledMaker.Core
         {
         }
 
-        private DecoratedName(Element parent, DecoratedNameNode pd)
-            : this(parent)
-        {
+        private DecoratedName(Element? parent, DecoratedNameNode pd)
+            : this(parent) =>
             this.node = pd;
-        }
 
         /*
                 public DecoratedName(string s) : this(null, s)
@@ -78,7 +73,7 @@ namespace MangledMaker.Core
                 }
         */
 
-        internal DecoratedName(Element parent, string s)
+        internal DecoratedName(Element? parent, string? s)
             : this(parent)
         {
             if (s != null) this.DoString(s);
@@ -101,8 +96,8 @@ namespace MangledMaker.Core
                 return;
             }
 
-            if (name[name.Length - 1] != '\0')
-                name = name + '\0';
+            if (name[^1] != '\0')
+                name += '\0';
             if (name[0] == '\0')
             {
                 this.status = NodeStatus.Truncated;
@@ -112,13 +107,13 @@ namespace MangledMaker.Core
             var x = 0;
             for (; (name[x] != '\0') && (name[x] != terminator); x++)
             {
-                if (IsCharValid(name[x]) || doNoIdentCharCheck)
+                if (DecoratedName.IsCharValid(name[x]) || doNoIdentCharCheck)
                     continue;
                 this.status = NodeStatus.Invalid;
                 return;
             }
             //BCD6
-            this.DoString(name.Substring(0, x));
+            this.DoString(name[..x]);
 
             //TODO: FINISH
         }
@@ -177,7 +172,7 @@ namespace MangledMaker.Core
             this.DoString(num.ToString(CultureInfo.InvariantCulture));
         }
 
-        private Element Parent { get; set; }
+        private Element? Parent { get; }
 
         public IEnumerable<DecoratedNameNode> Nodes
         {
@@ -186,8 +181,7 @@ namespace MangledMaker.Core
                 var cur = this.node;
                 while (cur != null)
                 {
-                    var nrn = cur as NameReferenceNode;
-                    if (nrn != null)
+                    if (cur is NameReferenceNode {Reference: { }} nrn)
                         foreach (var n in nrn.Reference.Nodes)
                             yield return n;
                     else
@@ -197,28 +191,13 @@ namespace MangledMaker.Core
             }
         }
 
-        internal NodeStatus Status
-        {
-            get
-            {
-                return this.status & NodeStatus.BasicStatus; // &NodeStatus.PublicStatus;
-            }
-        }
+        internal NodeStatus Status => this.status & NodeStatus.BasicStatus; // &NodeStatus.PublicStatus;
 
-        internal bool IsValid
-        {
-            get { return ((this.Status == NodeStatus.None) || (this.Status == NodeStatus.Truncated)); }
-        }
+        internal bool IsValid => this.Status is NodeStatus.None or NodeStatus.Truncated;
 
-        internal bool IsMissing
-        {
-            get { return this.status == NodeStatus.Truncated; }
-        }
+        internal bool IsMissing => this.status == NodeStatus.Truncated;
 
-        internal bool IsEmpty
-        {
-            get { return (this.node == null) || (!this.IsValid); }
-        }
+        internal bool IsEmpty => this.node == null || !this.IsValid;
 
         internal char LastCharacter
         {
@@ -227,70 +206,60 @@ namespace MangledMaker.Core
                 if (this.IsEmpty)
                     return '\0';
                 var n = this.node;
-                while (n.NextNode != null)
+                while (n?.NextNode != null)
                     n = n.NextNode;
-                return n.LastCharacter;
+                return n?.LastCharacter ?? '\0';
             }
         }
 
         internal bool IsArray
         {
-            get { return (this.status & NodeStatus.Array) != 0; }
-            set
-            {
+            get => (this.status & NodeStatus.Array) != 0;
+            set =>
                 this.status = value
-                                  ? this.status | NodeStatus.Array
-                                  : this.status & ~NodeStatus.Array;
-            }
+                    ? this.status | NodeStatus.Array
+                    : this.status & ~NodeStatus.Array;
         }
 
         internal bool IsComArray
         {
-            get { return (this.status & NodeStatus.ComArray) != 0; }
-            set
-            {
+            get => (this.status & NodeStatus.ComArray) != 0;
+            set =>
                 this.status = value
-                                  ? this.status | NodeStatus.ComArray
-                                  : this.status & ~NodeStatus.ComArray;
-            }
+                    ? this.status | NodeStatus.ComArray
+                    : this.status & ~NodeStatus.ComArray;
         }
 
         internal bool IsNoTypeEncoding
         {
-            get { return (this.status & NodeStatus.NoTypeEncoding) != 0; }
-            set
-            {
+            get => (this.status & NodeStatus.NoTypeEncoding) != 0;
+            set =>
                 this.status = value
-                                  ? this.status | NodeStatus.NoTypeEncoding
-                                  : this.status & ~NodeStatus.NoTypeEncoding;
-            }
+                    ? this.status | NodeStatus.NoTypeEncoding
+                    : this.status & ~NodeStatus.NoTypeEncoding;
         }
 
         internal bool IsPinnedPointer
         {
-            get { return (this.status & NodeStatus.PinPointer) != 0; }
-            set
-            {
+            get => (this.status & NodeStatus.PinPointer) != 0;
+            set =>
                 this.status = value
-                                  ? this.status | NodeStatus.PinPointer
-                                  : this.status & ~NodeStatus.PinPointer;
-            }
+                    ? this.status | NodeStatus.PinPointer
+                    : this.status & ~NodeStatus.PinPointer;
         }
 
         internal bool IsPointerReference
         {
-            get { return (this.status & NodeStatus.PointerReference) != 0; }
-            set
-            {
+            get => (this.status & NodeStatus.PointerReference) != 0;
+            set =>
                 this.status = value
-                                  ? this.status | NodeStatus.PointerReference
-                                  : this.status & ~NodeStatus.PointerReference;
-            }
+                    ? this.status | NodeStatus.PointerReference
+                    : this.status & ~NodeStatus.PointerReference;
         }
 
         public bool IsUdc
         {
-            get { return !this.IsEmpty && (this.status & NodeStatus.Udc) != 0; }
+            get => !this.IsEmpty && (this.status & NodeStatus.Udc) != 0;
             set
             {
                 if (!this.IsEmpty)
@@ -300,20 +269,15 @@ namespace MangledMaker.Core
             }
         }
 
-        internal bool IsUdtThunk
-        {
-            get { return !this.IsEmpty && ((this.status & NodeStatus.UdtThunk) != 0); }
-        }
+        internal bool IsUdtThunk => !this.IsEmpty && ((this.status & NodeStatus.UdtThunk) != 0);
 
         internal bool IsVirtualCallThunk
         {
-            get { return (this.status & NodeStatus.VirtualCallThunk) != 0; }
-            set
-            {
+            get => (this.status & NodeStatus.VirtualCallThunk) != 0;
+            set =>
                 this.status = value
-                                  ? this.status | NodeStatus.VirtualCallThunk
-                                  : this.status & ~NodeStatus.VirtualCallThunk;
-            }
+                    ? this.status | NodeStatus.VirtualCallThunk
+                    : this.status & ~NodeStatus.VirtualCallThunk;
         }
 
         internal int Length
@@ -329,28 +293,20 @@ namespace MangledMaker.Core
             }
         }
 
-        public IEnumerator<DecoratedNameNode> GetEnumerator()
-        {
-            return (IEnumerator<DecoratedNameNode>)this.Nodes;
-        }
+        public IEnumerator<DecoratedNameNode> GetEnumerator() => this.Nodes.GetEnumerator();
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return (IEnumerator<DecoratedNameNode>)this.Nodes;
-        }
+        IEnumerator IEnumerable.GetEnumerator() => this.Nodes.GetEnumerator();
 
-        internal static DecoratedName CreateReference(DecoratedName pd)
-        {
-            return CreateReference(null, pd);
-        }
+        internal static DecoratedName CreateReference(DecoratedName pd) => DecoratedName.CreateReference(null, pd);
 
-        internal static DecoratedName CreateReference(Element parent, DecoratedName pd)
+        internal static DecoratedName CreateReference(Element? parent, DecoratedName? pd)
         {
             var result = new DecoratedName(parent);
             if (pd == null)
                 return result;
             result.node = new NameReferenceNode(parent, pd);
-            result.status = (result.status & 0 /*PublicStatus*/); //| NodeStatus.Invalid;
+            // result.status = (result.status & 0 /*PublicStatus*/); //| NodeStatus.Invalid;
+            result.status = 0;
             return result;
         }
 
@@ -364,19 +320,19 @@ namespace MangledMaker.Core
 
         private DecoratedName Add(DecoratedName rd)
         {
-            var local = new DecoratedName(this.Parent, this);
+            DecoratedName local = new(this.Parent, this);
             if (local.IsEmpty)
                 local.Assign(rd);
             else if (rd.IsEmpty)
                 local.Append(rd.Status);
             else
                 local.Append(rd);
-            return new DecoratedName(this.Parent, local);
+            return new(this.Parent, local);
         }
 
         public static DecoratedName operator +(DecoratedName left, DecoratedName right)
         {
-            var local = new DecoratedName(left.Parent, left);
+            DecoratedName local = new(left.Parent, left);
             if (local.IsEmpty)
                 local.Assign(right);
             else if (right.IsEmpty)
@@ -386,55 +342,25 @@ namespace MangledMaker.Core
             return local;
         }
 
-        public static DecoratedName operator +(DecoratedName left, string right)
-        {
-            return left.Append(right);
-        }
+        public static DecoratedName operator +(DecoratedName left, string right) => left.Append(right);
 
-        public static DecoratedName operator +(DecoratedName left, NodeStatus right)
-        {
-            return left.Append(right);
-        }
+        public static DecoratedName operator +(DecoratedName left, NodeStatus right) => left.Append(right);
 
-        public static DecoratedName operator +(DecoratedName left, char right)
-        {
-            return left.Append(right);
-        }
+        public static DecoratedName operator +(DecoratedName left, char right) => left.Append(right);
 
-        private static DecoratedName Add(NodeStatus st, DecoratedName rd)
-        {
-            return new DecoratedName(rd.Parent, st).Add(rd);
-        }
+        private static DecoratedName Add(NodeStatus st, DecoratedName rd) => new DecoratedName(rd.Parent, st).Add(rd);
 
-        private static DecoratedName Add(string s, DecoratedName rd)
-        {
-            return new DecoratedName(rd.Parent, s).Add(rd);
-        }
+        private static DecoratedName Add(string s, DecoratedName rd) => new DecoratedName(rd.Parent, s).Add(rd);
 
-        private static DecoratedName Add(char c, DecoratedName rd)
-        {
-            return new DecoratedName(rd.Parent, c).Add(rd);
-        }
+        private static DecoratedName Add(char c, DecoratedName rd) => new DecoratedName(rd.Parent, c).Add(rd);
 
-        public static DecoratedName operator +(NodeStatus left, DecoratedName right)
-        {
-            return Add(left, right);
-        }
+        public static DecoratedName operator +(NodeStatus left, DecoratedName right) => DecoratedName.Add(left, right);
 
-        public static DecoratedName operator +(string left, DecoratedName right)
-        {
-            return Add(left, right);
-        }
+        public static DecoratedName operator +(string left, DecoratedName right) => DecoratedName.Add(left, right);
 
-        public static DecoratedName operator +(char left, DecoratedName right)
-        {
-            return Add(left, right);
-        }
+        public static DecoratedName operator +(char left, DecoratedName right) => DecoratedName.Add(left, right);
 
-        public static implicit operator DecoratedName(NodeStatus status)
-        {
-            return new DecoratedName(status);
-        }
+        public static implicit operator DecoratedName(NodeStatus status) => new(status);
 
         private void Assign(NodeStatus st)
         {
@@ -457,17 +383,14 @@ namespace MangledMaker.Core
 
         internal void Assign(DecoratedName rd)
         {
-            if ((this.Status != NodeStatus.None) && (this.Status != NodeStatus.Truncated))
+            if (this.Status != NodeStatus.None && this.Status != NodeStatus.Truncated)
                 return;
             this.status = rd.status & NodeStatus.FullTypeStatus
                           | this.status & ~NodeStatus.FullTypeStatus;
             this.node = rd.node;
         }
 
-        internal void Assign(char c)
-        {
-            this.DoString(c.ToString(CultureInfo.InvariantCulture));
-        }
+        internal void Assign(char c) => this.DoString(c.ToString(CultureInfo.InvariantCulture));
 
         internal DecoratedName Assign(string str)
         {
@@ -496,11 +419,11 @@ namespace MangledMaker.Core
         internal DecoratedName Append(NodeStatus st)
         {
             if (this.IsEmpty) // || (st == NodeStatus.Missing) || (st == NodeStatus.Error))
-                Assign(st);
+                this.Assign(st);
             else
             {
-                var statusNode = new DecoratedNameStatusNode(this.Parent, st);
-                this.node = this.node.Clone();
+                DecoratedNameStatusNode statusNode = new(this.Parent, st);
+                this.node = this.node?.Clone();
                 if (this.node != null)
                     this.node.Append(statusNode);
                 else
@@ -517,31 +440,19 @@ namespace MangledMaker.Core
                 this.Assign(rd);
             else
             {
-                this.node = this.node.Clone();
-                this.node.Append(rd.node);
+                this.node = this.node?.Clone();
+                this.node?.Append(rd.node);
             }
             return this;
         }
 
-        internal void Prepend(char c)
-        {
-            this.Assign(c + this);
-        }
+        internal void Prepend(char c) => this.Assign(c + this);
 
-        internal void Prepend(string str)
-        {
-            this.Assign(str + this);
-        }
+        internal void Prepend(string str) => this.Assign(str + this);
 
-        internal void Prepend(NodeStatus st)
-        {
-            Assign(st + this);
-        }
+        internal void Prepend(NodeStatus st) => this.Assign(st + this);
 
-        internal void Prepend(DecoratedName rd)
-        {
-            Assign(rd + this);
-        }
+        internal void Prepend(DecoratedName rd) => this.Assign(rd + this);
 
         internal void Skip(DecoratedName rd)
         {
@@ -552,21 +463,19 @@ namespace MangledMaker.Core
 
         private void DoString(string str)
         {
-            if (this.status == NodeStatus.Invalid || this.status == NodeStatus.Error)
+            if (this.status is NodeStatus.Invalid or NodeStatus.Error)
                 return;
             if (string.IsNullOrEmpty(str))
                 this.Assign(NodeStatus.Error);
-            else if (str.Length == 1)
-                this.node = new CharacterNode(this.Parent, str[0]);
-            else
-                this.node = new StringNode(this.Parent, str);
+            else 
+                this.node = str.Length == 1 ? new CharacterNode(this.Parent, str[0]) : new StringNode(this.Parent, str);
         }
 
         public override string ToString()
         {
             if (this.IsEmpty) 
                 return string.Empty;
-            var buffer = new StringBuilder(this.Length);
+            StringBuilder buffer = new(this.Length);
             for (var n = this.node; n != null; n = n.NextNode)
                 buffer.Append(n);
             return buffer.ToString();

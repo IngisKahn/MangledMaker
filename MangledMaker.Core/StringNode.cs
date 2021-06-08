@@ -12,25 +12,14 @@ namespace MangledMaker.Core
         }
 */
 
-        public StringNode(Element parent, string str)
-            : base(parent)
-        {
+        public StringNode(Element? parent, string str)
+            : base(parent) =>
             this.stringValue = str;
-        }
 
-        public override char LastCharacter
-        {
-            get { return this.stringValue[this.stringValue.Length - 1]; }
-        }
+        public override char LastCharacter => this.stringValue[^1];
 
-        public override int Length
-        {
-            get { return this.stringValue.Length; }
-        }
+        public override int Length => this.stringValue.Length;
 
-        public override string ToString()
-        {
-            return this.stringValue;
-        }
+        public override string ToString() => this.stringValue;
     }
 }
