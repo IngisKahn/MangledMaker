@@ -4,9 +4,9 @@ namespace MangledMaker.Core.Elements
 
     public sealed class Call : ComplexElement
     {
-        private BasedType basedType;
-        private Function function;
-        private TypedThunk typedThunk;
+        private BasedType? basedType;
+        private Function? function;
+        private TypedThunk? typedThunk;
 
         public Call(ComplexElement parent, DecoratedName declaration, DecoratedName symbol,
                     TypeEncoding typeEncoding)
@@ -37,41 +37,22 @@ namespace MangledMaker.Core.Elements
         public TypeEncoding TypeEncoding { get; set; }
 
         [Child]
-        public BasedType BasedType
-        {
-            get { return this.TypeEncoding.IsBased ?? false ? this.basedType : null; }
-        }
+        public BasedType? BasedType => this.TypeEncoding.IsBased ?? false ? this.basedType ??= new(this) : null;
 
         [Child]
-        public TypedThunk TypedThunk
-        {
-            get { return this.TypeEncoding.IsTypedThunk ? this.typedThunk : null; }
-        }
+        public TypedThunk? TypedThunk => this.TypeEncoding.IsTypedThunk ? this.typedThunk ??= new(this, this.Declaration, this.Symbol, this.TypeEncoding) : null;
 
         [Child]
-        public Function Function
-        {
-            get { return !this.TypeEncoding.IsTypedThunk ? this.function : null; }
-        }
+        public Function? Function => !this.TypeEncoding.IsTypedThunk ? this.function ??= new(this, this.Declaration, this.Symbol, this.TypeEncoding) : null;
 
         [Output]
-        public bool NeedsModifiers { get; set; }
-
-        protected override void CreateEmptyElements()
-        {
-            if (this.basedType == null)
-                this.basedType = new BasedType(this);
-            if (this.typedThunk == null)
-                this.typedThunk = new TypedThunk(this, this.Declaration, this.Symbol, this.TypeEncoding);
-            if (this.function == null)
-                this.function = new Function(this, this.Declaration, this.Symbol, this.TypeEncoding);
-        }
+        public bool NeedsModifiers { get; private set; }
 
         protected override DecoratedName GenerateName()
         {
             var declaration = new DecoratedName(this, this.Declaration);
 
-            if (this.TypeEncoding.IsBased ?? false)
+            if ((this.TypeEncoding.IsBased ?? false) && this.basedType != null)
                 if (this.UnDecorator.DoMicrosoftKeywords && this.UnDecorator.DoAllocationModel)
                 {
                     declaration.Append(' ');
@@ -81,7 +62,7 @@ namespace MangledMaker.Core.Elements
                     declaration.Skip(this.basedType.Name);
 
 
-            if (this.TypeEncoding.IsTypedThunk)
+            if (this.TypeEncoding.IsTypedThunk && this.typedThunk != null)
             {
                 this.typedThunk.Declaration = declaration;
                 this.typedThunk.Symbol = this.Symbol;
@@ -89,7 +70,7 @@ namespace MangledMaker.Core.Elements
 
                 this.NeedsModifiers = true;
             }
-            else
+            else if (this.function != null)
             {
                 this.function.Declaration = declaration;
                 this.function.Symbol = this.Symbol;
@@ -103,26 +84,26 @@ namespace MangledMaker.Core.Elements
         private unsafe void Parse(ref char* pSource)
         {
             if (this.TypeEncoding.IsBased ?? false)
-                this.basedType = new BasedType(this);
+                this.basedType = new(this);
 
             if (this.TypeEncoding.IsTypedThunk)
-                this.typedThunk = new TypedThunk(this, ref pSource, this.Declaration, this.Symbol,
+                this.typedThunk = new(this, ref pSource, this.Declaration, this.Symbol,
                                                  this.TypeEncoding);
             else
-                this.function = new Function(this, ref pSource, this.Declaration, this.Symbol,
+                this.function = new(this, ref pSource, this.Declaration, this.Symbol,
                                              this.TypeEncoding);
         }
 
         protected override DecoratedName GenerateCode()
         {
-            var code = new DecoratedName(this);
+            DecoratedName code = new(this);
 
-            if (this.TypeEncoding.IsBased ?? false)
+            if ((this.TypeEncoding.IsBased ?? false) && this.basedType != null)
                 code.Assign(this.basedType.Code);
 
-            if (this.TypeEncoding.IsTypedThunk)
+            if (this.TypeEncoding.IsTypedThunk && this.typedThunk != null)
                 return code + this.typedThunk.Code;
-            return code + this.function.Code;
+            return this.function != null ? code + this.function.Code : code;
         }
     }
 }

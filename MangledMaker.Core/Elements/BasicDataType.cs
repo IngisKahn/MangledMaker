@@ -43,16 +43,16 @@ namespace MangledMaker.Core.Elements
                     case Types.VolatilePointer:
                     case Types.ConstVolatilePointer:
                         return
-                            this.pointerType ??= new PointerType(this, this.SuperType, new());
+                            this.pointerType ??= new(this, this.SuperType, new());
                     default:
                         return null;
                 }
             }
         }
-        private PointerTypeArray pointerTypeArray;
+        private PointerTypeArray? pointerTypeArray;
 
         private Types type;
-        private UserDefinedType userDefinedType;
+        private UserDefinedType? userDefinedType;
         private BasicDataType? w64Type;
 
         public BasicDataType(ComplexElement parent, DecoratedName superType)
@@ -90,42 +90,24 @@ namespace MangledMaker.Core.Elements
         }
 
         [Child]
-        public BasicDataType? W64Type => this.type == Types.Extended && this.extendedType == ExtendedTypes.W64 ? this.w64Type ??= new BasicDataType(this, this.SuperType) : null;
+        public BasicDataType? W64Type => this.type == Types.Extended && this.extendedType == ExtendedTypes.W64 ? this.w64Type ??= new(this, this.SuperType) : null;
 
         [Child]
-        public UserDefinedType UserDefinedType
-        {
-            get { return this.type == Types.UserDefinedType ? this.userDefinedType : null; }
-        }
+        public UserDefinedType? UserDefinedType => this.type == Types.UserDefinedType ? this.userDefinedType ??= new(this) : null;
 
 
         [Child]
-        public PointerTypeArray PointerTypeArray
-        {
-            get
-            {
-                return this.type == Types.Extended && this.extendedType == ExtendedTypes.Array
-                           ? this.pointerTypeArray
-                           : null;
-            }
-        }
-
-        protected override void CreateEmptyElements()
-        {
-            if (this.w64Type == null) this.w64Type = new BasicDataType(this, this.SuperType);
-            if (this.userDefinedType == null) this.userDefinedType = new UserDefinedType(this);
-            if (this.pointerType == null)
-                this.pointerType = new PointerType(this, this.SuperType, new DecoratedName());
-            if (this.pointerTypeArray == null)
-                this.pointerTypeArray = new PointerTypeArray(this, this.SuperType, new DecoratedName());
-        }
+        public PointerTypeArray? PointerTypeArray =>
+            this.type == Types.Extended && this.extendedType == ExtendedTypes.Array
+                ? this.pointerTypeArray ??= new(this, this.SuperType, new())
+                : null;
 
         protected override DecoratedName GenerateName()
         {
             if (this.isMissing)
                 return new DecoratedName(this, NodeStatus.Truncated) + this.SuperType;
             var pointerOptions = -1;
-            var result = new DecoratedName(this);
+            DecoratedName result = new(this);
             switch (this.type)
             {
                 case Types.SignedChar:
@@ -165,7 +147,7 @@ namespace MangledMaker.Core.Elements
                     {
                         case ExtendedTypes.W64:
                             result.Assign("__w64 ");
-                            return result + this.w64Type.Name;
+                            return this.w64Type != null ? result + this.w64Type.Name : result;
                         case ExtendedTypes.Int8:
                         case ExtendedTypes.UnsignedInt8:
                             result.Assign("__int8");
@@ -201,7 +183,8 @@ namespace MangledMaker.Core.Elements
                     }
                     break;
                 default:
-                    result.Assign(this.userDefinedType.Name);
+                    if (this.userDefinedType != null)
+                        result.Assign(this.userDefinedType.Name);
                     if (result.IsEmpty)
                         return result;
                     break;
@@ -245,6 +228,8 @@ namespace MangledMaker.Core.Elements
             if (pointerOptions == -2)
             {
                 super.IsArray = true;
+                if (this.pointerTypeArray == null)
+                    throw new InvalidOperationException("Missing pointer type array");
                 this.pointerTypeArray.CvType = cvType;
                 this.pointerTypeArray.SuperType = this.SuperType;
                 var array = this.pointerTypeArray.Name;
@@ -261,6 +246,8 @@ namespace MangledMaker.Core.Elements
                 }
                 else if ((pointerOptions & 2) != 0)
                     cvType.Append("volatile");
+            if (this.pointerType == null)
+                throw new InvalidOperationException("Missing pointer type");
             this.pointerType.CvType = cvType;
             this.pointerType.SuperType = super;
             return this.pointerType.Name;
@@ -285,17 +272,17 @@ namespace MangledMaker.Core.Elements
                     switch (this.extendedType)
                     {
                         case ExtendedTypes.W64:
-                            this.w64Type = new BasicDataType(this, ref pSource, this.SuperType);
+                            this.w64Type = new(this, ref pSource, this.SuperType);
                             break;
                         case ExtendedTypes.Array:
-                            this.pointerTypeArray = new PointerTypeArray(this, ref pSource,
-                                this.SuperType, new DecoratedName());
+                            this.pointerTypeArray = new(this, ref pSource,
+                                this.SuperType, new());
                             break;
                         case (ExtendedTypes)'X':
                         case (ExtendedTypes)'Y':
                             pSource--;
                             this.type = Types.UserDefinedType;
-                            this.userDefinedType = new UserDefinedType(this, ref pSource);
+                            this.userDefinedType = new(this, ref pSource);
                             break;
                         case ExtendedTypes.Int8:
                         case ExtendedTypes.Int16:
@@ -320,18 +307,17 @@ namespace MangledMaker.Core.Elements
                 case Types.VolatilePointer:
                 case Types.ConstVolatilePointer:
                     this.pointerType = new PointerType(this, ref pSource, this.SuperType,
-                        new DecoratedName());
+                        new());
                     break;
                 default:
                     if (Enum.GetName(typeof(Types), this.type) == null)
                     {
                         pSource--;
                         this.type = Types.UserDefinedType;
-                        this.userDefinedType = new UserDefinedType(this, ref pSource);
+                        this.userDefinedType = new(this, ref pSource);
                     }
                     break;
             }
-            return;
         }
 
         protected override DecoratedName GenerateCode()
@@ -345,9 +331,11 @@ namespace MangledMaker.Core.Elements
 
             if (this.type == Types.UserDefinedType)
             {
+                if (this.userDefinedType == null)
+                    throw new InvalidOperationException("missing user defined type");
                 var udt = this.userDefinedType.Code;
                 var ecsu = udt.ToString()[0];
-                if (ecsu == 'X' || ecsu == 'Y')
+                if (ecsu is 'X' or 'Y')
                     code.Assign('_');
                 code.Append(udt);
                 return code;
@@ -360,17 +348,20 @@ namespace MangledMaker.Core.Elements
                 case Types.ConstPointer:
                 case Types.VolatilePointer:
                 case Types.ConstVolatilePointer:
-                    code.Append(this.pointerType.Code);
+                    if (this.pointerType != null)
+                        code.Append(this.pointerType.Code);
                     break;
                 case Types.Extended:
                     code.Append((char)this.extendedType);
                     switch (this.extendedType)
                     {
                         case ExtendedTypes.W64:
-                            code.Append(this.w64Type.Code);
+                            if (this.w64Type != null)
+                                code.Append(this.w64Type.Code);
                             break;
                         case ExtendedTypes.Array:
-                            code.Append(this.pointerTypeArray.Code);
+                            if (this.pointerTypeArray != null)
+                                code.Append(this.pointerTypeArray.Code);
                             break;
                     }
                     break;
