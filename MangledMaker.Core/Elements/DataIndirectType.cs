@@ -56,7 +56,7 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public bool IsNamed
         {
-            get { return this.isNamed; }
+            get => this.isNamed;
             set
             {
                 this.completionLevel = int.MaxValue;
@@ -67,7 +67,7 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public bool IsConst
         {
-            get { return this.isConst; }
+            get => this.isConst;
             set
             {
                 this.completionLevel = int.MaxValue;
@@ -80,7 +80,7 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public bool IsVolatile
         {
-            get { return this.isVolatile; }
+            get => this.isVolatile;
             set
             {
                 this.completionLevel = int.MaxValue;
@@ -93,7 +93,7 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public bool IsBased
         {
-            get { return this.isBased; }
+            get => this.isBased;
             set
             {
                 this.completionLevel = int.MaxValue;
@@ -104,46 +104,41 @@ namespace MangledMaker.Core.Elements
         }
 
         [Child]
-        public List<DataSpecialModifier> SpecialModifiers { get; private set; }
+        public List<DataSpecialModifier> SpecialModifiers { get; }
 
-        [Child]
-        public Scope DataName { get; private set; }
+        private Scope? dataName;
 
-        [Child]
-        public BasedType BasedType { get; private set; }
+        [Child] public Scope DataName => this.dataName ??= new(this);
 
-        public Element CreateChild()
-        {
-            return new DataSpecialModifier(this, this.PrType, this.IsThis, new DecoratedName(),
-                                           new DecoratedName());
-        }
+        private BasedType? basedType;
+        [Child] public BasedType BasedType => this.basedType ??= new(this);
 
-        protected override void CreateEmptyElements()
-        {
-            if (this.DataName == null)
-                this.DataName = new Scope(this);
-            if (this.BasedType == null)
-                this.BasedType = new BasedType(this);
-        }
+        public Element CreateChild() =>
+            new DataSpecialModifier(this, this.PrType, this.IsThis, new DecoratedName(),
+                new DecoratedName());
 
         protected override DecoratedName GenerateName()
         {
             var bIsPinPtr = false;
-            var dataChar = IndirectionToChar(this.PrType);
+            var dataChar = Element.IndirectionToChar(this.PrType);
             if (this.completionLevel <= 0)
             {
-                if (!this.IsThis && !this.SuperType.IsEmpty)
+                switch (this.IsThis)
                 {
-                    if (this.CvType.IsEmpty)
-                        return new DecoratedName(this, NodeStatus.Truncated) + this.SuperType;
-                    var m = new DecoratedName(this, NodeStatus.Truncated);
-                    m.Append(this.CvType);
-                    m.Append(' ');
-                    return m + this.SuperType;
+                    case false when !this.SuperType.IsEmpty:
+                    {
+                        if (this.CvType.IsEmpty)
+                            return new DecoratedName(this, NodeStatus.Truncated) + this.SuperType;
+                        DecoratedName m = new(this, NodeStatus.Truncated);
+                        m.Append(this.CvType);
+                        m.Append(' ');
+                        return m + this.SuperType;
+                    }
+                    case false when !this.CvType.IsEmpty:
+                        return new DecoratedName(this, NodeStatus.Truncated) + this.CvType;
+                    default:
+                        return new(this, NodeStatus.Truncated);
                 }
-                if (!this.IsThis && !this.CvType.IsEmpty)
-                    return new DecoratedName(this, NodeStatus.Truncated) + this.CvType;
-                return new DecoratedName(this, NodeStatus.Truncated);
             }
 
             var keywords = new DecoratedName(this);
@@ -274,12 +269,12 @@ namespace MangledMaker.Core.Elements
                         if (*pSource != '\0')
                         {
                             this.completionLevel++;
-                            this.DataName = new Scope(this, ref pSource);
+                            this.dataName = new Scope(this, ref pSource);
                         }
                         else
                             return;
                     else if (*pSource != '\0')
-                        this.DataName = new Scope(this, ref pSource);
+                        this.dataName = new Scope(this, ref pSource);
 
                     if (*pSource == '\0')
                         return;
@@ -293,7 +288,7 @@ namespace MangledMaker.Core.Elements
                 if ((charOffset & 0xC) == 0xC) //2M
                 {
                     this.isBased = true;
-                    this.BasedType = new BasedType(this, ref pSource);
+                    this.basedType = new BasedType(this, ref pSource);
                 }
                 else
                     this.isBased = false;

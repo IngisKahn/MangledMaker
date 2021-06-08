@@ -4,32 +4,15 @@ namespace MangledMaker.Core.Elements
 
     public sealed class CallIndex : Element
     {
-        public CallIndex(Element parent) : base(parent)
-        {
-            this.Index = new Dimension(this, 0);
-        }
+        public CallIndex(Element parent) : base(parent) => this.Index = new(this, 0);
 
-        public unsafe CallIndex(Element parent, ref char* pSource) : base(parent)
-        {
-            this.Parse(ref pSource);
-        }
+        public unsafe CallIndex(Element parent, ref char* pSource) : base(parent) => this.Index = new(this, ref pSource, false);
 
         [Child]
-        public Dimension Index { get; private set; }
+        public Dimension Index { get; }
 
-        protected override DecoratedName GenerateName()
-        {
-            return this.Index.Name;
-        }
+        protected override DecoratedName GenerateName() => this.Index.Name;
 
-        private unsafe void Parse(ref char* pSource)
-        {
-            this.Index = new Dimension(this, ref pSource, false);
-        }
-
-        protected override DecoratedName GenerateCode()
-        {
-            return this.Index.Code;
-        }
+        protected override DecoratedName GenerateCode() => this.Index.Code;
     }
 }

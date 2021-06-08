@@ -2,19 +2,15 @@ namespace MangledMaker.Core.Elements
 {
     public abstract class ComplexElement : Element
     {
-        protected UnDecorator UnDecorator { get; private set; }
+        protected UnDecorator UnDecorator { get; }
 
         protected ComplexElement(UnDecorator unDecorator)
-            : base(null)
-        {
+            : base(null) =>
             this.UnDecorator = unDecorator;
-        }
 
         protected ComplexElement(ComplexElement parent)
-            : base(parent)
-        {
+            : base(parent) =>
             this.UnDecorator = parent.UnDecorator;
-        }
 
         private static readonly string[] tokenTable = 
         {
@@ -77,7 +73,7 @@ namespace MangledMaker.Core.Elements
             Restrict,
             Unaligned,
 #if !VERS_32BIT
-                Intterupt,
+                Interrupt,
                 SaveRegs,
                 Self,
                 Segment,
@@ -105,13 +101,13 @@ namespace MangledMaker.Core.Elements
                 case TokenType.Pointer:
                 case TokenType.Restrict:
                 case TokenType.Unaligned:
-                    tokenName = tokenTable[token - TokenType.Based];
+                    tokenName = ComplexElement.tokenTable[token - TokenType.Based];
                     break;
                 default:
-                    return null;
+                    return string.Empty;
             }
             if (!this.UnDecorator.DoUnderscore)
-                tokenName = tokenName.Substring(2);
+                tokenName = tokenName[2..];
             return tokenName;
         }
     }

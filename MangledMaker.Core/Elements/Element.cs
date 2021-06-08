@@ -7,7 +7,7 @@ namespace MangledMaker.Core.Elements
 
     public abstract class Element
     {
-        protected Element(Element parent) => this.Parent = parent;
+        protected Element(Element? parent) => this.Parent = parent;
 
         public Element Parent { get; }
 

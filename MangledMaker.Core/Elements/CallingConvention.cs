@@ -20,31 +20,24 @@ namespace MangledMaker.Core.Elements
         public CallingConvention(ComplexElement parent) : base(parent)
         { }
         public unsafe CallingConvention(ComplexElement parent, ref char* pSource)
-            : base(parent)
-        { Parse(ref pSource); }
+            : base(parent) =>
+            this.Parse(ref pSource);
 
         protected override DecoratedName GenerateName()
         {
             var result = new DecoratedName(this);
-            if (!this.UnDecorator.DoMicrosoftKeywords)
-                return result;
-            switch (this.Convention)
-            {
-                case ConventionType.C:
-                    return result.Assign(this.UScore(TokenType.C));
-                case ConventionType.Pascal:
-                    return result.Assign(this.UScore(TokenType.Pascal));
-                case ConventionType.This:
-                    return result.Assign(this.UScore(TokenType.This));
-                case ConventionType.Standard:
-                    return result.Assign(this.UScore(TokenType.Standard));
-                case ConventionType.Fast:
-                    return result.Assign(this.UScore(TokenType.Fast));
-                case ConventionType.CommonLanguageRuntime:
-                    return result.Assign(this.UScore(TokenType.CommonLanguageRuntime));
-                default:
-                    throw new System.InvalidOperationException();
-            }
+            return !this.UnDecorator.DoMicrosoftKeywords
+                ? result
+                : this.Convention switch
+                                    {
+                                        ConventionType.C => result.Assign(this.UScore(TokenType.C)),
+                                        ConventionType.Pascal => result.Assign(this.UScore(TokenType.Pascal)),
+                                        ConventionType.This => result.Assign(this.UScore(TokenType.This)),
+                                        ConventionType.Standard => result.Assign(this.UScore(TokenType.Standard)),
+                                        ConventionType.Fast => result.Assign(this.UScore(TokenType.Fast)),
+                                        ConventionType.CommonLanguageRuntime => result.Assign(this.UScore(TokenType.CommonLanguageRuntime)),
+                                        _ => throw new System.InvalidOperationException()
+                                    };
         }
 
         private unsafe void Parse(ref char* pSource)
@@ -109,7 +102,7 @@ namespace MangledMaker.Core.Elements
                 default:
                     throw new System.InvalidOperationException();
             }
-            return new DecoratedName(this, code);
+            return new(this, code);
         }
     }
 }

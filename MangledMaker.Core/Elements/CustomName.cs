@@ -9,39 +9,31 @@ namespace MangledMaker.Core.Elements
         {
             this.Prefix = prefix;
 
-            this.Index = new SignedDimension(this, false);
+            this.Index = new(this, false);
         }
 
         public unsafe CustomName(ComplexElement parent, ref char* pSource, string prefix)
             : base(parent)
         {
             this.Prefix = prefix;
-            this.Parse(ref pSource);
+            this.Index = new(this, ref pSource);
         }
 
         [Child]
-        public SignedDimension Index { get; private set; }
+        public SignedDimension Index { get; }
 
         [Input]
         public string Prefix { get; set; }
 
         protected override DecoratedName GenerateName()
         {
-            string param;
-            if (this.UnDecorator.HaveTemplateParameters
-                && (param = this.UnDecorator.GetParameter((int)this.Index.Dimension.Value)) != null)
-                return new DecoratedName(this, param);
-            return new DecoratedName(this, '`') + this.Prefix + new DecoratedName(this, this.Index.Name) + '\'';
+            string? param;
+            return this.UnDecorator.HaveTemplateParameters
+                   && (param = this.UnDecorator.GetParameter((int) this.Index.Dimension.Value)) != null
+                ? new(this, param)
+                : new DecoratedName(this, '`') + this.Prefix + new DecoratedName(this, this.Index.Name) + '\'';
         }
 
-        private unsafe void Parse(ref char* pSource)
-        {
-            this.Index = new SignedDimension(this, ref pSource);
-        }
-
-        protected override DecoratedName GenerateCode()
-        {
-            return this.Index.Code;
-        }
+        protected override DecoratedName GenerateCode() => this.Index.Code;
     }
 }
