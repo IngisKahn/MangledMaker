@@ -4,14 +4,12 @@ namespace MangledMaker.Core.Elements
 
     public sealed class Declaration : ComplexElement
     {
-        private Call call;
-        private SpecialName specialName;
+        private Call? call;
+        private SpecialName? specialName;
 
         public Declaration(ComplexElement parent, DecoratedName symbol)
-            : base(parent)
-        {
+            : base(parent) =>
             this.Symbol = symbol;
-        }
 
         public unsafe Declaration(ComplexElement parent, ref char* pSource,
                                   DecoratedName symbol)
@@ -24,74 +22,55 @@ namespace MangledMaker.Core.Elements
         [Input]
         public DecoratedName Symbol { get; set; }
 
-        [Child]
-        public TypeEncoding TypeEncoding { get; private set; }
+        private TypeEncoding? typeEncoding;
+
+        [Child] public TypeEncoding TypeEncoding => this.typeEncoding ??= new(this);
 
         [Child]
-        public Call Call
-        {
-            get { return this.IsCall ? this.call : null; }
-        }
+        public Call? Call => this.IsCall ? this.call : null;
 
         [Child]
-        public SpecialName SpecialName
-        {
-            get { return !this.IsCall ? this.specialName : null; }
-        }
+        public SpecialName? SpecialName => !this.IsCall ? this.specialName : null;
 
-        private bool IsCall
-        {
-            get
-            {
-                return this.TypeEncoding != null &&
-                       (this.TypeEncoding.IsFunction &&
-                        !(this.TypeEncoding.IsDestructorHelper ||
-                          this.TypeEncoding.IsDataMemberConstructorHelper ||
-                          this.TypeEncoding.IsDataMemberDestructorHelper));
-            }
-        }
+        private bool IsCall =>
+            this.TypeEncoding is {IsFunction: true} && !(this.TypeEncoding.IsDestructorHelper ||
+                                                         this.TypeEncoding.IsDataMemberConstructorHelper ||
+                                                         this.TypeEncoding.IsDataMemberDestructorHelper);
 
-        protected override void CreateEmptyElements()
-        {
-            if (this.TypeEncoding == null)
-                this.TypeEncoding = new TypeEncoding(this);
-            if (this.call == null)
-                this.call = new Call(this, new DecoratedName(), new DecoratedName(), this.TypeEncoding);
-            if (this.specialName == null)
-                this.specialName = new SpecialName(this, this.TypeEncoding, new DecoratedName());
-        }
+        private Call CallSafe => this.call ??= new(this, new(), new(), this.TypeEncoding);
+        private SpecialName SpecialNameSafe => this.specialName ??= new(this, this.TypeEncoding, new());
 
         protected override DecoratedName GenerateName()
         {
             var declaration = new DecoratedName(this);
 
             if (!this.TypeEncoding.Name.IsValid)
-                return new DecoratedName(this, NodeStatus.Invalid);
+                return new(this, NodeStatus.Invalid);
 
             if (this.TypeEncoding.Name.IsMissing)
                 return new DecoratedName(this, NodeStatus.Truncated) + this.Symbol;
 
             if (this.TypeEncoding.IsNone)
-                return new DecoratedName(this, this.Symbol);
+                return new(this, this.Symbol);
 
             bool needsModifiers;
 
             if (this.IsCall)
             {
-                this.call.Declaration = declaration;
-                this.call.Symbol = this.Symbol;
-                declaration = this.call.Name;
-                needsModifiers = this.call.NeedsModifiers;
+                this.CallSafe.Declaration = declaration;
+                this.CallSafe.Symbol = this.Symbol;
+                declaration = this.CallSafe.Name;
+                needsModifiers = this.CallSafe.NeedsModifiers;
             }
             else
             {
-                this.specialName.Symbol = declaration.Append(this.Symbol);
-                declaration = this.specialName.Name;
-                needsModifiers = this.specialName.NeedsModifiers;
+                this.SpecialNameSafe.Symbol = declaration.Append(this.Symbol);
+                declaration = this.SpecialNameSafe.Name;
+                needsModifiers = this.SpecialNameSafe.NeedsModifiers;
             }
 
             // reset parent
-            declaration = new DecoratedName(this, declaration);
+            declaration = new(this, declaration);
 
             if (!needsModifiers) 
                 return declaration;
@@ -119,22 +98,22 @@ namespace MangledMaker.Core.Elements
 
         private unsafe void Parse(ref char* pSource)
         {
-            this.TypeEncoding = new TypeEncoding(this, ref pSource);
+            this.typeEncoding = new(this, ref pSource);
 
             if (!this.TypeEncoding.Name.IsValid || this.TypeEncoding.Name.IsMissing || this.TypeEncoding.IsNone)
                 return;
 
             if (this.IsCall)
-                this.call = new Call(this, ref pSource, new DecoratedName(), this.Symbol,
+                this.call = new Call(this, ref pSource, new(), this.Symbol,
                                      this.TypeEncoding);
             else
-                this.specialName = new SpecialName(this, ref pSource, this.TypeEncoding, this.Symbol);
+                this.specialName = new(this, ref pSource, this.TypeEncoding, this.Symbol);
         }
 
         protected override DecoratedName GenerateCode()
         {
             var code = new DecoratedName(this, this.TypeEncoding.Code);
-            code.Append(this.IsCall ? this.call.Code : this.specialName.Code);
+            code.Append(this.IsCall ? this.CallSafe.Code : this.SpecialNameSafe.Code);
 
             return code;
         }

@@ -157,7 +157,8 @@ namespace MangledMaker.Core.Elements
                 if (!extended.IsEmpty)
                     return extended;
                 dataChar = dsm.Prefix;
-                bIsPinPtr |= dsm.ExtendedDataIndirectType.Mode == IndirectMode.Pin;
+                if (dsm.ExtendedDataIndirectType != null)
+                    bIsPinPtr |= dsm.ExtendedDataIndirectType.Mode == IndirectMode.Pin;
             }
 
 

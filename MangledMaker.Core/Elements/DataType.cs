@@ -12,25 +12,21 @@ namespace MangledMaker.Core.Elements
             Direct
         }
 
-        private DataIndirectType dataIndirectType;
+        private DataIndirectType? dataIndirectType;
 
         private bool isMissing;
 
         private DataTypeMode mode;
 
-        private PrimaryDataType primaryDataType;
+        private PrimaryDataType? primaryDataType;
 
         public DataType(ComplexElement parent, DecoratedName declarator)
-            : base(parent)
-        {
+            : base(parent) =>
             this.Declarator = declarator;
-        }
 
         public unsafe DataType(ComplexElement parent, ref char* pSource, DecoratedName declarator)
-            : this(parent, declarator)
-        {
+            : this(parent, declarator) =>
             this.Parse(ref pSource);
-        }
 
         [Input]
         public DecoratedName Declarator { get; set; }
@@ -38,7 +34,7 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public DataTypeMode Mode
         {
-            get { return this.mode; }
+            get => this.mode;
             set
             {
                 this.mode = value;
@@ -46,24 +42,14 @@ namespace MangledMaker.Core.Elements
             }
         }
 
-        [Child]
-        public DataIndirectType DataIndirectType
-        {
-            get { return this.mode == DataTypeMode.Indirect ? this.dataIndirectType : null; }
-        }
+        private DataIndirectType DataIndirectTypeSafe => this.dataIndirectType ??= new(this);
+        private PrimaryDataType PrimaryDataTypeSafe => this.primaryDataType ??= new(this, new());
 
         [Child]
-        public PrimaryDataType PrimaryDataType
-        {
-            get { return this.mode == DataTypeMode.Void ? null : this.primaryDataType; }
-        }
+        public DataIndirectType? DataIndirectType => this.mode == DataTypeMode.Indirect ? this.DataIndirectTypeSafe : null;
 
-        protected override void CreateEmptyElements()
-        {
-            if (this.dataIndirectType == null) this.dataIndirectType = new DataIndirectType(this);
-            if (this.primaryDataType == null)
-                this.primaryDataType = new PrimaryDataType(this, new DecoratedName(this));
-        }
+        [Child]
+        public PrimaryDataType? PrimaryDataType => this.mode == DataTypeMode.Void ? null : this.PrimaryDataTypeSafe;
 
         protected override DecoratedName GenerateName()
         {
@@ -74,16 +60,16 @@ namespace MangledMaker.Core.Elements
             switch (this.mode)
             {
                 case DataTypeMode.Indirect:
-                    superType.Assign(this.dataIndirectType.Name);
-                    this.primaryDataType.SuperType = superType;
-                    return this.primaryDataType.Name;
+                    superType.Assign(this.DataIndirectTypeSafe.Name);
+                    this.PrimaryDataTypeSafe.SuperType = superType;
+                    return this.PrimaryDataTypeSafe.Name;
                 case DataTypeMode.Void:
                     if (superType.IsEmpty)
-                        return new DecoratedName(this, "void");
+                        return new(this, "void");
                     return new DecoratedName(this, "void ") + superType;
                 default:
-                    this.primaryDataType.SuperType = superType;
-                    return this.primaryDataType.Name;
+                    this.PrimaryDataTypeSafe.SuperType = superType;
+                    return this.PrimaryDataTypeSafe.Name;
             }
         }
 
@@ -100,10 +86,10 @@ namespace MangledMaker.Core.Elements
                 case '?':
                     this.mode = DataTypeMode.Indirect;
                     pSource++;
-                    this.dataIndirectType = new DataIndirectType(this, ref pSource, superType, (IndirectType)'\0',
-                                                                 new DecoratedName(), false);
+                    this.dataIndirectType = new(this, ref pSource, superType, (IndirectType)'\0',
+                                                                 new(), false);
                     superType.Assign(this.dataIndirectType.Name);
-                    this.primaryDataType = new PrimaryDataType(this, ref pSource, superType);
+                    this.primaryDataType = new(this, ref pSource, superType);
                     break;
                 case 'X':
                     this.mode = DataTypeMode.Void;
@@ -111,22 +97,18 @@ namespace MangledMaker.Core.Elements
                     break;
                 default:
                     this.mode = DataTypeMode.Direct;
-                    this.primaryDataType = new PrimaryDataType(this, ref pSource, superType);
+                    this.primaryDataType = new(this, ref pSource, superType);
                     break;
             }
         }
 
-        protected override DecoratedName GenerateCode()
-        {
-            switch (this.mode)
+        protected override DecoratedName GenerateCode() =>
+            this.mode switch
             {
-                case DataTypeMode.Indirect:
-                    return new DecoratedName(this, '?') + this.dataIndirectType.Code + this.primaryDataType.Code;
-                case DataTypeMode.Void:
-                    return new DecoratedName(this, 'X');
-                default:
-                    return this.primaryDataType.Code;
-            }
-        }
+                DataTypeMode.Indirect => new DecoratedName(this, '?') + this.DataIndirectTypeSafe.Code +
+                                         this.PrimaryDataTypeSafe.Code,
+                DataTypeMode.Void => new(this, 'X'),
+                _ => this.PrimaryDataTypeSafe.Code
+            };
     }
 }

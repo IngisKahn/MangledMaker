@@ -18,10 +18,7 @@ namespace MangledMaker.Core.Elements
             this.Signed = signed;
         }
 
-        public unsafe EnumType(Element parent, ref char* pSource) : base(parent)
-        {
-            this.Parse(ref pSource);
-        }
+        public unsafe EnumType(Element parent, ref char* pSource) : base(parent) => this.Parse(ref pSource);
 
         [Setting]
         public EnumBaseType BaseType { get; set; }
@@ -31,7 +28,7 @@ namespace MangledMaker.Core.Elements
 
         protected override DecoratedName GenerateName()
         {
-            var ecsuName = new DecoratedName(this);
+            DecoratedName ecsuName = new(this);
 
             switch (this.BaseType)
             {
@@ -103,7 +100,7 @@ namespace MangledMaker.Core.Elements
             value <<= 1;
             if (!this.Signed)
                 value++;
-            return new DecoratedName(this, (char)(value + '0'));
+            return new(this, (char)(value + '0'));
         }
     }
 }

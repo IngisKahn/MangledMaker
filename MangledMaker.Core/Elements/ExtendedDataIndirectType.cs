@@ -56,10 +56,8 @@ namespace MangledMaker.Core.Elements
 
         public unsafe ExtendedDataIndirectType(Element parent, ref char* pSource,
                                                IndirectType indirection, bool isThis)
-            : this(parent, indirection, isThis)
-        {
+            : this(parent, indirection, isThis) =>
             this.Parse(ref pSource);
-        }
 
         [Input]
         public IndirectType Indirection { get; set; }
@@ -72,16 +70,12 @@ namespace MangledMaker.Core.Elements
         {
             get
             {
-                var prefix = '\0';
-                switch (this.Indirection)
+                var prefix = this.Indirection switch
                 {
-                    case IndirectType.Pointer:
-                        prefix = '*';
-                        break;
-                    case IndirectType.Reference:
-                        prefix = '&';
-                        break;
-                }
+                    IndirectType.Pointer => '*',
+                    IndirectType.Reference => '&',
+                    _ => '\0'
+                };
                 switch (this.Mode)
                 {
                     case IndirectMode.Fixed:
@@ -89,7 +83,7 @@ namespace MangledMaker.Core.Elements
                         break;
                     case IndirectMode.Class:
                         if (!this.isThis)
-                            prefix = (prefix == '&') ? '%' : '^';
+                            prefix = prefix == '&' ? '%' : '^';
                         break;
                 }
                 return prefix;
@@ -99,30 +93,30 @@ namespace MangledMaker.Core.Elements
         [Input]
         public bool? IsThis
         {
-            get { return this.Mode == IndirectMode.Class ? (bool?)this.isThis : null; }
-            set { this.isThis = value ?? false; }
+            get => this.Mode == IndirectMode.Class ? this.isThis : null;
+            set => this.isThis = value ?? false;
         }
 
         [Setting]
         public int? IndirectionLevel
         {
-            get { return this.indirectionLevel; }
-            set { this.indirectionLevel = value ?? 0; }
+            get => this.indirectionLevel;
+            set => this.indirectionLevel = value ?? 0;
         }
 
         [Setting]
         public bool? IsSubType
         {
-            get { return this.isSubType; }
-            set { this.isSubType = value ?? false; }
+            get => this.isSubType;
+            set => this.isSubType = value ?? false;
         }
 
         protected override DecoratedName GenerateName()
         {
             if (this.Mode != IndirectMode.ComPlus)
-                return new DecoratedName(this);
+                return new(this);
 
-            var szComPlusIndirSpecifier = new DecoratedName(this);
+            DecoratedName szComPlusIndirSpecifier = new(this);
 
             if (this.indirectionLevel > 1)
                 szComPlusIndirSpecifier.Assign(',' + new DecoratedName(this, (ulong)this.indirectionLevel));
@@ -173,11 +167,11 @@ namespace MangledMaker.Core.Elements
             switch (this.Mode)
             {
                 case IndirectMode.Class:
-                    return new DecoratedName(this, 'A');
+                    return new(this, 'A');
                 case IndirectMode.Pin:
-                    return new DecoratedName(this, 'B');
+                    return new(this, 'B');
                 case IndirectMode.Fixed:
-                    return new DecoratedName(this, 'C');
+                    return new(this, 'C');
                 default:
                     var result = "";
 

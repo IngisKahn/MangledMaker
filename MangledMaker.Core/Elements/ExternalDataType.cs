@@ -17,22 +17,23 @@ namespace MangledMaker.Core.Elements
             : base(parent)
         {
             this.SuperType = superType;
-            this.Parse(ref pSource);
+            this.DataType = new(this, ref pSource, new());
+            this.StorageConvention = new(this, ref pSource);
         }
 
         [Input]
         public DecoratedName SuperType { get; set; }
 
         [Child]
-        public DataType DataType { get; private set; }
+        public DataType DataType { get; }
 
         [Child]
-        public StorageConvention StorageConvention { get; private set; }
+        public StorageConvention StorageConvention { get; }
 
 
         protected override DecoratedName GenerateName()
         {
-            var pDeclarator = new DecoratedName(this);
+            DecoratedName pDeclarator = new(this);
             this.DataType.Declarator = pDeclarator;
             var declaration = this.DataType.Name;
             pDeclarator.Assign(this.StorageConvention.Name);
@@ -41,15 +42,6 @@ namespace MangledMaker.Core.Elements
             return declaration;
         }
 
-        private unsafe void Parse(ref char* pSource)
-        {
-            this.DataType = new DataType(this, ref pSource, new DecoratedName());
-            this.StorageConvention = new StorageConvention(this, ref pSource);
-        }
-
-        protected override DecoratedName GenerateCode()
-        {
-            return this.DataType.Code + this.StorageConvention.Code;
-        }
+        protected override DecoratedName GenerateCode() => this.DataType.Code + this.StorageConvention.Code;
     }
 }

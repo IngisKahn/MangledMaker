@@ -5,24 +5,13 @@ namespace MangledMaker.Core.Elements
     public sealed class Displacement : Element
     {
         [Child]
-        public Dimension Offset { get; private set; }
+        public Dimension Offset { get; }
 
-        public Displacement(Element parent) : base(parent) { this.Offset = new Dimension(this, 0, true); }
-        public unsafe Displacement(Element parent, ref char* pSource) : base(parent) { Parse(ref pSource); }
+        public Displacement(Element parent) : base(parent) => this.Offset = new(this, 0, true);
+        public unsafe Displacement(Element parent, ref char* pSource) : base(parent) => this.Offset = new(this, ref pSource, true);
 
-        protected override DecoratedName GenerateName()
-        {
-            return this.Offset.Name;
-        }
+        protected override DecoratedName GenerateName() => this.Offset.Name;
 
-        private unsafe void Parse(ref char* pSource)
-        {
-            this.Offset = new Dimension(this, ref pSource, true);
-        }
-
-        protected override DecoratedName GenerateCode()
-        {
-            return this.Offset.Code;
-        }
+        protected override DecoratedName GenerateCode() => this.Offset.Code;
     }
 }

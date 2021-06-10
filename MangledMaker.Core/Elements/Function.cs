@@ -4,11 +4,16 @@ namespace MangledMaker.Core.Elements
 
     public sealed class Function : ComplexElement
     {
-        private Displacement displacement1;
-        private Displacement displacement2;
-        private Displacement displacement3;
-        private Displacement displacement4;
-        private ThisType thisType;
+        private Displacement? displacement1;
+        private Displacement Displacement1Safe => this.displacement1 ??= new(this);
+        private Displacement? displacement2;
+        private Displacement Displacement2Safe => this.displacement2 ??= new(this);
+        private Displacement? displacement3;
+        private Displacement Displacement3Safe => this.displacement3 ??= new(this);
+        private Displacement? displacement4;
+        private Displacement Displacement4Safe => this.displacement4 ??= new(this);
+        private ThisType? thisType;
+        private ThisType ThisTypeSafe => this.thisType ??= new(this);
 
         public Function(ComplexElement parent, DecoratedName declaration, DecoratedName symbol,
                         TypeEncoding typeEncoding)
@@ -39,117 +44,78 @@ namespace MangledMaker.Core.Elements
         public TypeEncoding TypeEncoding { get; set; }
 
         [Child]
-        public Displacement Displacement1
-        {
-            get { return this.TypeEncoding.IsThunk ? this.displacement1 : null; }
-        }
+        public Displacement? Displacement1 => this.TypeEncoding.IsThunk ? this.displacement1 : null;
 
         [Child]
-        public Displacement Displacement2
-        {
-            get
-            {
-                return this.TypeEncoding.IsThunk &&
-                       (this.TypeEncoding.IsVirtualConstructorExtended || this.TypeEncoding.IsVirtualConstructor)
-                           ? this.displacement2
-                           : null;
-            }
-        }
+        public Displacement? Displacement2 =>
+            this.TypeEncoding.IsThunk &&
+            (this.TypeEncoding.IsVirtualConstructorExtended || this.TypeEncoding.IsVirtualConstructor)
+                ? this.displacement2
+                : null;
 
         [Child]
-        public Displacement Displacement3
-        {
-            get
-            {
-                return this.TypeEncoding.IsThunk && this.TypeEncoding.IsVirtualConstructorExtended
-                           ? this.displacement3
-                           : null;
-            }
-        }
+        public Displacement? Displacement3 =>
+            this.TypeEncoding.IsThunk && this.TypeEncoding.IsVirtualConstructorExtended
+                ? this.displacement3
+                : null;
 
         [Child]
-        public Displacement Displacement4
-        {
-            get
-            {
-                return this.TypeEncoding.IsThunk && this.TypeEncoding.IsVirtualConstructorExtended
-                           ? this.displacement4
-                           : null;
-            }
-        }
+        public Displacement? Displacement4 =>
+            this.TypeEncoding.IsThunk && this.TypeEncoding.IsVirtualConstructorExtended
+                ? this.displacement4
+                : null;
 
         [Child]
-        public ThisType ThisType
-        {
-            get { return !this.TypeEncoding.IsMemberStatic ? this.thisType : null; }
-        }
+        public ThisType? ThisType => !this.TypeEncoding.IsMemberStatic ? this.thisType : null;
 
-        [Child]
-        public CallingConvention CallingConvention { get; private set; }
+        private CallingConvention? callingConvention;
 
-        [Child]
-        public ReturnType ReturnType { get; private set; }
+        [Child] public CallingConvention CallingConvention => this.callingConvention ??= new(this);
 
-        [Child]
-        public ArgumentTypes ArgumentTypes { get; private set; }
+        private ReturnType? returnType;
 
-        [Child]
-        public ThrowTypes ThrowTypes { get; private set; }
+        [Child] public ReturnType ReturnType => this.returnType ??= new(this, new(this));
+
+        private ArgumentTypes? argumentTypes;
+
+        [Child] public ArgumentTypes ArgumentTypes => this.argumentTypes ??= new(this);
+
+        private ThrowTypes? throwTypes;
+
+        [Child] public ThrowTypes ThrowTypes => this.throwTypes ??= new(this);
 
         [Output]
         public bool NeedsModifiers { get; private set; }
-
-        protected override void CreateEmptyElements()
-        {
-            if (this.displacement1 == null)
-                this.displacement1 = new Displacement(this);
-            if (this.displacement2 == null)
-                this.displacement2 = new Displacement(this);
-            if (this.displacement3 == null)
-                this.displacement3 = new Displacement(this);
-            if (this.displacement4 == null)
-                this.displacement4 = new Displacement(this);
-            if (this.thisType == null)
-                this.thisType = new ThisType(this);
-            if (this.CallingConvention == null)
-                this.CallingConvention = new CallingConvention(this);
-            if (this.ReturnType == null)
-                this.ReturnType = new ReturnType(this, this.Symbol);
-            if (this.ArgumentTypes == null)
-                this.ArgumentTypes = new ArgumentTypes(this);
-            if (this.ThrowTypes == null)
-                this.ThrowTypes = new ThrowTypes(this);
-        }
 
         protected override DecoratedName GenerateName()
         {
             var declaration = new DecoratedName(this, this.Declaration);
 
-            DecoratedName disp4 = new DecoratedName(this),
-                          disp3 = new DecoratedName(this),
-                          disp2 = new DecoratedName(this),
-                          disp1 = new DecoratedName(this),
-                          classType = new DecoratedName(this);
+            DecoratedName disp4 = new(this),
+                          disp3 = new(this),
+                          disp2 = new(this),
+                          disp1 = new(this),
+                          classType = new(this);
 
             if (this.TypeEncoding.IsThunk)
             {
                 if (this.TypeEncoding.IsVirtualConstructorExtended)
                 {
-                    disp4.Assign(this.displacement4.Name);
-                    disp3.Assign(this.displacement3.Name);
-                    disp2.Assign(this.displacement2.Name);
+                    disp4.Assign(this.Displacement4Safe.Name);
+                    disp3.Assign(this.Displacement3Safe.Name);
+                    disp2.Assign(this.Displacement2Safe.Name);
                 }
                 else if (this.TypeEncoding.IsVirtualConstructor)
-                    disp2.Assign(this.displacement2.Name);
+                    disp2.Assign(this.Displacement2Safe.Name);
 
-                disp1.Assign(this.displacement1.Name);
+                disp1.Assign(this.Displacement1Safe.Name);
             }
 
             if (this.TypeEncoding.IsClass && !this.TypeEncoding.IsMemberStatic)
                 if (this.UnDecorator.DoThisTypes)
-                    classType.Assign(this.thisType.Name);
+                    classType.Assign(this.ThisTypeSafe.Name);
                 else
-                    classType.Skip(this.thisType.Name);
+                    classType.Skip(this.ThisTypeSafe.Name);
 
             if (this.UnDecorator.DoMicrosoftKeywords && this.UnDecorator.DoAllocationLanguage)
                 declaration.Prepend(this.CallingConvention.Name);
@@ -162,7 +128,7 @@ namespace MangledMaker.Core.Elements
                 else
                     declaration.Assign(this.Symbol);
 
-            DecoratedName holder = null;
+            DecoratedName? holder = null;
             var linkedReturnType = new DecoratedName(this);
             if (this.Symbol.IsUdc)
             {
@@ -176,7 +142,7 @@ namespace MangledMaker.Core.Elements
             }
             else
             {
-                this.ReturnType.Declarator = holder = new DecoratedName(this);
+                this.ReturnType.Declarator = holder = new(this);
                 linkedReturnType.Assign(this.ReturnType.Name);
             }
             if (this.TypeEncoding.IsThunk)
@@ -201,7 +167,7 @@ namespace MangledMaker.Core.Elements
             else
                 declaration.Skip(this.ThrowTypes.Name);
 
-            if (this.UnDecorator.DoFunctionReturns && (holder != null))
+            if (this.UnDecorator.DoFunctionReturns && holder != null)
             {
                 holder.Assign(declaration);
                 declaration.Assign(linkedReturnType);
@@ -218,44 +184,44 @@ namespace MangledMaker.Core.Elements
             {
                 if (this.TypeEncoding.IsVirtualConstructorExtended)
                 {
-                    this.displacement4 = new Displacement(this, ref pSource);
-                    this.displacement3 = new Displacement(this, ref pSource);
-                    this.displacement2 = new Displacement(this, ref pSource);
+                    this.displacement4 = new(this, ref pSource);
+                    this.displacement3 = new(this, ref pSource);
+                    this.displacement2 = new(this, ref pSource);
                 }
                 else if (this.TypeEncoding.IsVirtualConstructor)
-                    this.displacement2 = new Displacement(this, ref pSource);
+                    this.displacement2 = new(this, ref pSource);
 
-                this.displacement1 = new Displacement(this, ref pSource);
+                this.displacement1 = new(this, ref pSource);
             }
 
             if (this.TypeEncoding.IsClass && !this.TypeEncoding.IsMemberStatic)
-                this.thisType = new ThisType(this, ref pSource);
+                this.thisType = new(this, ref pSource);
 
-            this.CallingConvention = new CallingConvention(this, ref pSource);
+            this.callingConvention = new(this, ref pSource);
 
-            this.ReturnType = new ReturnType(this, ref pSource, this.Symbol);
+            this.returnType = new(this, ref pSource, this.Symbol);
 
-            this.ArgumentTypes = new ArgumentTypes(this, ref pSource);
+            this.argumentTypes = new(this, ref pSource);
 
-            this.ThrowTypes = new ThrowTypes(this, ref pSource);
+            this.throwTypes = new(this, ref pSource);
         }
 
         protected override DecoratedName GenerateCode()
         {
-            var code = new DecoratedName(this);
+            DecoratedName code = new(this);
 
             if (this.TypeEncoding.IsThunk)
             {
                 if (this.TypeEncoding.IsVirtualConstructorExtended)
-                    code.Assign(this.displacement4.Code + this.displacement3.Code + this.displacement2.Code);
+                    code.Assign(this.Displacement4Safe.Code + this.Displacement3Safe.Code + this.Displacement2Safe.Code);
                 else if (this.TypeEncoding.IsVirtualConstructor)
-                    code.Assign(this.displacement2.Code);
+                    code.Assign(this.Displacement2Safe.Code);
 
-                code.Append(this.displacement1.Code);
+                code.Append(this.Displacement1Safe.Code);
             }
 
             if (this.TypeEncoding.IsClass && !this.TypeEncoding.IsMemberStatic)
-                code.Append(this.thisType.Code);
+                code.Append(this.ThisTypeSafe.Code);
 
             return code + this.CallingConvention.Code + this.ReturnType.Code + this.ArgumentTypes.Code +
                    this.ThrowTypes.Code;

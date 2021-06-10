@@ -12,10 +12,8 @@ namespace MangledMaker.Core.Elements
         private ThisType thisType;
 
         public FunctionIndirectType(ComplexElement parent, DecoratedName superType)
-            : base(parent)
-        {
+            : base(parent) =>
             this.SuperType = superType;
-        }
 
         public unsafe FunctionIndirectType(ComplexElement parent, ref char* pSource,
                                            DecoratedName superType)
@@ -30,7 +28,7 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public bool IsScoped
         {
-            get { return this.isScoped; }
+            get => this.isScoped;
             set
             {
                 this.isScoped = value;
@@ -41,7 +39,7 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public bool IsBased
         {
-            get { return this.isBased; }
+            get => this.isBased;
             set
             {
                 this.isBased = value;
@@ -50,22 +48,13 @@ namespace MangledMaker.Core.Elements
         }
 
         [Child]
-        public Scope Scope
-        {
-            get { return this.isScoped ? this.scope : null; }
-        }
+        public Scope? Scope => this.isScoped ? this.scope : null;
 
         [Child]
-        public ThisType ThisType
-        {
-            get { return this.isScoped ? this.thisType : null; }
-        }
+        public ThisType? ThisType => this.isScoped ? this.thisType : null;
 
         [Child]
-        public BasedType BasedType
-        {
-            get { return this.isBased ? this.basedType : null; }
-        }
+        public BasedType? BasedType => this.isBased ? this.basedType : null;
 
         [Child]
         public CallingConvention CallingConvention { get; private set; }

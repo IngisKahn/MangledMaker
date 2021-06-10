@@ -33,7 +33,7 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public long Value
         {
-            get { return this.value; }
+            get => this.value;
             set
             {
                 this.value = value;
@@ -44,18 +44,18 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public bool? IsNonTypeTemplateParameter
         {
-            get { return (this.value > 0 && this.value < 10) ? (bool?)this.isNonTypeTemplateParameter : null; }
-            set { this.isNonTypeTemplateParameter = value ?? false; }
+            get => (this.value is > 0 and < 10) ? this.isNonTypeTemplateParameter : null;
+            set => this.isNonTypeTemplateParameter = value ?? false;
         }
 
-        protected override DecoratedName GenerateName()
-        {
-            if (this.value < 0)
-                return new DecoratedName(this, this.value);
-            if (this.value < 10 && this.isNonTypeTemplateParameter)
-                return "`non-type-template-parameter-" + new DecoratedName(this, (ulong)this.value);
-            return new DecoratedName(this, (ulong)this.value);
-        }
+        protected override DecoratedName GenerateName() =>
+            this.value switch
+            {
+                < 0 => new(this, this.value),
+                < 10 when this.isNonTypeTemplateParameter => "`non-type-template-parameter-" +
+                                                             new DecoratedName(this, (ulong) this.value),
+                _ => new(this, (ulong) this.value)
+            };
 
         private unsafe void Parse(ref char* pSource)
         {
@@ -66,47 +66,52 @@ namespace MangledMaker.Core.Elements
                 this.isNonTypeTemplateParameter = true;
                 cur = *++pSource;
             }
-            if (cur == '\0')
-                this.IsTruncated = true;
-            else if (cur >= '0' && cur <= '9')
+            switch (cur)
             {
-                this.value = cur - 0x2F;
-                pSource++;
-            }
-            else
-            {
-                ulong rawValue = 0;
-                for (; cur != '@'; cur = *++pSource)
+                case '\0':
+                    this.IsTruncated = true;
+                    break;
+                case >= '0' and <= '9':
+                    this.value = cur - 0x2F;
+                    pSource++;
+                    break;
+                default:
                 {
-                    if (cur == '\0')
-                    {
-                        this.IsTruncated = true;
-                        return;
-                    }
-                    if (cur < 'A' || cur > 'P')
-                    {
-                        this.IsInvalid = true;
-                        return;
-                    }
-                    rawValue <<= 4;
-                    rawValue += (ulong)(cur - 'A');
+                    ulong rawValue = 0;
+                    for (; cur != '@'; cur = *++pSource)
+                        switch (cur)
+                        {
+                            case '\0':
+                                this.IsTruncated = true;
+                                return;
+                            case < 'A':
+                            case > 'P':
+                                this.IsInvalid = true;
+                                return;
+                            default:
+                                rawValue <<= 4;
+                                rawValue += (ulong)(cur - 'A');
+                                break;
+                        }
+
+                    pSource++;
+                    //if (cur != '@')  // impossible
+                    //    this.IsInvalid = true;
+                    //else
+                    this.value = this.signed ? *(long*)&rawValue : (long)rawValue;
+                    break;
                 }
-                pSource++;
-                //if (cur != '@')  // impossible
-                //    this.IsInvalid = true;
-                //else
-                this.value = this.signed ? *(long*)&rawValue : (long)rawValue;
             }
         }
 
         protected override DecoratedName GenerateCode()
         {
-            var result = new StringBuilder();
+            StringBuilder result = new();
 
             if (this.isNonTypeTemplateParameter)
                 result.Append('Q');
 
-            if (this.value > 0 && this.value < 10)
+            if (this.value is > 0 and < 10)
                 result.Append((char)(this.value + '\x2F'));
             else
             {
@@ -131,7 +136,7 @@ namespace MangledMaker.Core.Elements
                 result.Append('@');
             }
 
-            return new DecoratedName(this, result.ToString());
+            return new(this, result.ToString());
         }
     }
 }

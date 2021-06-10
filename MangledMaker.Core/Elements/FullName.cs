@@ -4,111 +4,79 @@ namespace MangledMaker.Core.Elements
 
     public sealed class FullName : ComplexElement
     {
-        private DataType dataName;
-        private Declaration declaration;
+        private DataType? dataName;
+        private DataType DataNameSafe => this.dataName ??= new(this, new(this));
+        private Declaration? declaration;
+        private Declaration DeclarationSafe => this.declaration ??= new(this, new(this));
         private bool isSubName;
-        private Scope parentScope;
+        private Scope? parentScope;
+        private Scope ParentScopeSafe => this.parentScope ??= new(this);
 
-        private FullName subName;
+        private FullName? subName;
+        private FullName SubNameSafe => this.subName ??= new(this);
 
-        private SymbolName symbolName;
-        private Scope templateScope;
+        private SymbolName? symbolName;
+        private SymbolName SymbolNameSafe => this.symbolName ??= new(this);
+        private Scope? templateScope;
+        private Scope TemplateScopeSafe => this.templateScope ??= new(this);
 
         public FullName(ComplexElement parent) : base(parent)
         { }
 
         public unsafe FullName(ComplexElement parent, ref char* pSource)
-            : this(parent)
-        {
+            : this(parent) =>
             this.Parse(ref pSource);
-        }
 
         [Child]
-        public DataType DataName
-        {
-            get { return this.UnDecorator.DoTypeOnly ? this.dataName : null; }
-        }
+        public DataType? DataName => this.UnDecorator.DoTypeOnly ? this.dataName : null;
 
         [Child]
-        public FullName SubName
-        {
-            get { return !this.UnDecorator.DoTypeOnly && this.isSubName ? this.subName : null; }
-        }
+        public FullName? SubName => !this.UnDecorator.DoTypeOnly && this.isSubName ? this.subName : null;
 
         [Child]
-        public SymbolName SymbolName
-        {
-            get { return !this.UnDecorator.DoTypeOnly && !this.isSubName ? this.symbolName : null; }
-        }
+        public SymbolName? SymbolName => !this.UnDecorator.DoTypeOnly && !this.isSubName ? this.symbolName : null;
 
         [Child]
-        public Scope ParentScope
-        {
-            get { return !this.UnDecorator.DoTypeOnly && !this.isSubName ? this.parentScope : null; }
-        }
+        public Scope? ParentScope => !this.UnDecorator.DoTypeOnly && !this.isSubName ? this.parentScope : null;
 
         [Child]
-        public Scope TemplateScope
-        {
-            get
-            {
-                return !this.UnDecorator.DoTypeOnly && !this.isSubName
-                       && this.UnDecorator.ExplicitTemplateParams
-                           ? this.templateScope
-                           : null;
-            }
-        }
+        public Scope? TemplateScope =>
+            !this.UnDecorator.DoTypeOnly && !this.isSubName
+                                         && this.UnDecorator.ExplicitTemplateParams
+                ? this.templateScope
+                : null;
 
         [Child]
-        public Declaration Declaration
-        {
-            get { return !this.UnDecorator.DoTypeOnly && !this.isSubName ? this.declaration : null; }
-        }
+        public Declaration? Declaration => !this.UnDecorator.DoTypeOnly && !this.isSubName ? this.declaration : null;
 
         [Setting]
         public bool? IsSubName
         {
-            get { return this.UnDecorator.DoTypeOnly ? (bool?)null : this.isSubName; }
+            get => this.UnDecorator.DoTypeOnly ? null : this.isSubName;
             set { if (value != null) this.isSubName = (bool)value; }
-        }
-
-        protected override void CreateEmptyElements()
-        {
-            if (this.dataName == null) 
-                this.dataName = new DataType(this, new DecoratedName(this));
-            if (this.subName == null) 
-                this.subName = new FullName(this);
-            if (this.symbolName == null) 
-                this.symbolName = new SymbolName(this);
-            if (this.parentScope == null) 
-                this.parentScope = new Scope(this);
-            if (this.templateScope == null) 
-                this.templateScope = new Scope(this);
-            if (this.declaration == null)
-                this.declaration = new Declaration(this, new DecoratedName(this));
         }
 
         protected override DecoratedName GenerateName()
         {
             if (this.UnDecorator.DoTypeOnly)
-                return this.dataName.Name;
+                return this.DataNameSafe.Name;
             if (this.isSubName)
-                return this.subName.Name;
-            var sn = this.symbolName.Name;
+                return this.SubNameSafe.Name;
+            var sn = this.SymbolNameSafe.Name;
 
             var isSymbolUdc = sn.IsUdc;
             var isSymbolVirtualThunk = sn.IsVirtualCallThunk;
             if (!sn.IsValid)
                 return sn;
-            var s = this.parentScope.Name;
+            var s = this.ParentScopeSafe.Name;
             if (!s.IsEmpty)
                 if (this.UnDecorator.ExplicitTemplateParams)
                 {
                     this.UnDecorator.ExplicitTemplateParams = false;
                     sn.Assign(sn + s);
-                    if (!this.templateScope.Name.IsEmpty)
+                    if (!this.TemplateScopeSafe.Name.IsEmpty)
                     {
-                        s.Assign(this.templateScope.Name);
+                        s.Assign(this.TemplateScopeSafe.Name);
                         sn.Assign(s + new DecoratedName(this, "::") + sn);
                     }
                 }
@@ -123,8 +91,8 @@ namespace MangledMaker.Core.Elements
 
             if (this.UnDecorator.DoNameOnly && !isSymbolUdc && !sn.IsVirtualCallThunk)
                 return sn;
-            this.declaration.Symbol = sn;
-            return this.declaration.Name;
+            this.DeclarationSafe.Symbol = sn;
+            return this.DeclarationSafe.Name;
         }
 
         private unsafe void Parse(ref char* pSource)
@@ -137,7 +105,7 @@ namespace MangledMaker.Core.Elements
                 this.UnDecorator.DisableFlags &= ~DisableOptions.NoArguments;
                 // If we're decoding just a type, process it as the type for an abstract
                 // declarator, by giving an empty symbol name.
-                this.dataName = new DataType(this, ref pSource, new DecoratedName(this));
+                this.dataName = new(this, ref pSource, new(this));
                 this.UnDecorator.DisableFlags |= DisableOptions.NoArguments;
             }
             else
@@ -148,12 +116,12 @@ namespace MangledMaker.Core.Elements
                     if (*pSource == '?' && pSource[1] == '?')
                     {
                         this.isSubName = true;
-                        this.subName = new FullName(this, ref pSource);
+                        this.subName = new(this, ref pSource);
                         while (*pSource != '\0') pSource++;
                     }
                     else
                     {
-                        this.symbolName = new SymbolName(this, ref pSource);
+                        this.symbolName = new(this, ref pSource);
                         var sn = this.symbolName.Name;
                         var isSymbolUdc = sn.IsUdc;
                         var isSymbolVirtualThunk = sn.IsVirtualCallThunk;
@@ -198,11 +166,10 @@ namespace MangledMaker.Core.Elements
                             pSource++;
                         }
 
-                        if (this.UnDecorator.DoNameOnly && !isSymbolUdc && !sn.IsVirtualCallThunk)
-                            this.declaration = new Declaration(this, ref pSource,
-                                new DecoratedName(this));
-                        else
-                            this.declaration = new Declaration(this, ref pSource, sn);
+                        this.declaration = this.UnDecorator.DoNameOnly && !isSymbolUdc && !sn.IsVirtualCallThunk
+                            ? new(this, ref pSource,
+                                new(this))
+                            : new(this, ref pSource, sn);
                     }
                 }
                 else if (*pSource != '\0')
@@ -214,24 +181,22 @@ namespace MangledMaker.Core.Elements
         protected override DecoratedName GenerateCode()
         {
             if (this.UnDecorator.DoTypeOnly)
-                return this.dataName.Code;
+                return this.DataNameSafe.Code;
 
-            var result = new DecoratedName(this, '?');
+            DecoratedName result = new(this, '?');
             if (this.isSubName)
-                return result + this.subName.Code;
-            result += this.symbolName.Code;
-            if (!this.parentScope.Name.IsEmpty)
+                return result + this.SubNameSafe.Code;
+            result += this.SymbolNameSafe.Code;
+            if (!this.ParentScopeSafe.Name.IsEmpty)
             {
-                result += this.parentScope.Code;
-                if (this.UnDecorator.ExplicitTemplateParams && !this.templateScope.Name.IsEmpty)
-                    result += this.templateScope.Code;
+                result += this.ParentScopeSafe.Code;
+                if (this.UnDecorator.ExplicitTemplateParams && !this.TemplateScopeSafe.Name.IsEmpty)
+                    result += this.TemplateScopeSafe.Code;
             }
             result += '@';
-            if (!this.symbolName.Name.IsEmpty)
-            {
-                //declaration.Symbol = 
-                result += this.declaration.Code;
-            }
+            if (!this.SymbolNameSafe.Name.IsEmpty)
+            //declaration.Symbol = 
+                result += this.DeclarationSafe.Code;
 
             return result;
         }

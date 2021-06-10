@@ -1,5 +1,6 @@
 namespace MangledMaker.Core.Elements
 {
+    using System;
     using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
@@ -9,35 +10,19 @@ namespace MangledMaker.Core.Elements
     {
         protected Element(Element? parent) => this.Parent = parent;
 
-        public Element Parent { get; }
+        public Element? Parent { get; }
 
         protected bool IsTruncated { private get; set; }
 
         protected bool IsInvalid { private get; set; }
 
-        public DecoratedName Name
-        {
-            get
-            {
-                this.CreateEmptyElements();
-                if (this.IsTruncated)
-                    return new DecoratedName(this, NodeStatus.Truncated);
-                return this.IsInvalid ? new DecoratedName(this, NodeStatus.Invalid) : this.GenerateName();
-            }
-        }
+        public DecoratedName Name =>
+            this.IsTruncated ? new(this, NodeStatus.Truncated) :
+            this.IsInvalid ? new(this, NodeStatus.Invalid) : this.GenerateName();
 
-        public DecoratedName Code
-        {
-            get
-            {
-                this.CreateEmptyElements();
-                if (this.IsTruncated || this.IsInvalid)
-                    return new DecoratedName();
-                return this.GenerateCode();
-            }
-        }
+        public DecoratedName Code => this.IsTruncated || this.IsInvalid ? new() : this.GenerateCode();
 
-        private IEnumerable<Element> Children
+        private IEnumerable<Element?> Children
         {
             get
             {
@@ -49,11 +34,10 @@ namespace MangledMaker.Core.Elements
                     {
                         var type = pi.PropertyType;
                         if (type.IsSubclassOf(typeof(Element)))
-                            yield return (Element)pi.GetValue(this, null);
+                            yield return (Element?)pi.GetValue(this, null);
                         else
                         {
-                            var list = pi.GetValue(this, null) as IList;
-                            if (list == null) 
+                            if (pi.GetValue(this, null) is not IList list)
                                 continue;
                             foreach (var e in list.OfType<Element>())
                                 yield return e;
@@ -62,34 +46,19 @@ namespace MangledMaker.Core.Elements
             }
         }
 
-        protected virtual void CreateEmptyElements()
-        {
-        }
-
         protected abstract DecoratedName GenerateName();
         protected abstract DecoratedName GenerateCode();
 
-        public override string ToString()
-        {
-            return this.Name.ToString();
-        }
+        public override string ToString() => this.Name.ToString();
 
-        public bool IsAncestorOf(Element test)
-        {
-            return this.Children.Any(child => child == test || child != null && child.IsAncestorOf(test));
-        }
+        public bool IsAncestorOf(Element test) => this.Children.Any(child => child == test || child != null && child.IsAncestorOf(test));
 
-        protected static char IndirectionToChar(IndirectType type)
-        {
-            switch (type)
+        protected static char IndirectionToChar(IndirectType type) =>
+            type switch
             {
-                case IndirectType.Pointer:
-                    return '*';
-                case IndirectType.Reference:
-                    return '&';
-                default:
-                    return '\0';
-            }
-        }
+                IndirectType.Pointer => '*',
+                IndirectType.Reference => '&',
+                _ => '\0'
+            };
     }
 }
