@@ -24,14 +24,11 @@ namespace MangledMaker.Core.Elements
         public string Value { get; set; }
 
 
-        protected override DecoratedName GenerateName()
-        {
-            return new DecoratedName(this, this.Value);
-        }
+        protected override DecoratedName GenerateName() => new(this, this.Value);
 
         private unsafe void Parse(ref char* pSource)
         {
-            var result = new DecoratedName(this, new string(pSource), this.Terminator,
+            DecoratedName result = new(this, new(pSource), this.Terminator,
                                            this.UnDecorator.DoNoIdentCharCheck);
             this.Value = result.ToString();
             pSource += result.Length;
@@ -39,9 +36,6 @@ namespace MangledMaker.Core.Elements
                 pSource++;
         }
 
-        protected override DecoratedName GenerateCode()
-        {
-            return new DecoratedName(this, this.Value) + this.Terminator;
-        }
+        protected override DecoratedName GenerateCode() => new DecoratedName(this, this.Value) + this.Terminator;
     }
 }

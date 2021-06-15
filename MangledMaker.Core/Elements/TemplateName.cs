@@ -4,10 +4,7 @@ namespace MangledMaker.Core.Elements
 
     public sealed class TemplateName : ComplexElement
     {
-        public TemplateName(ComplexElement parent, bool readTerminator) : base(parent)
-        {
-            this.ReadTerminator = readTerminator;
-        }
+        public TemplateName(ComplexElement parent, bool readTerminator) : base(parent) => this.ReadTerminator = readTerminator;
 
         public unsafe TemplateName(ComplexElement parent, ref char* pSource, bool readTerminator)
             : base(parent)
@@ -23,29 +20,24 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public bool IsOperator { get; set; }
 
+        private OperatorName? operatorName;
         [Child]
-        public OperatorName OperatorName { get; private set; }
+        public OperatorName OperatorName { get => this.operatorName ??= new(this, true); private set => this.operatorName = value; }
 
+        private ZName? zName;
         [Child]
-        public ZName ZName { get; private set; }
+        public ZName ZName { get => this.zName ??= new(this, true); private set => this.zName = value; }
 
+        private TemplateArgumentList? templateArgumentList;
         [Child]
-        public TemplateArgumentList TemplateArgumentList { get; private set; }
-
-        protected override void CreateEmptyElements()
-        {
-            if (this.OperatorName == null) this.OperatorName = new OperatorName(this, true);
-            if (this.ZName == null) this.ZName = new ZName(this, true);
-            if (this.TemplateArgumentList == null)
-                this.TemplateArgumentList = new TemplateArgumentList(this);
-        }
+        public TemplateArgumentList TemplateArgumentList { get => this.templateArgumentList ??= new(this); private set => this.templateArgumentList = value; }
 
         protected override DecoratedName GenerateName()
         {
             var fReadTemplateArguments = false;
             this.PushLists();
 
-            var templateName = new DecoratedName(this);
+            DecoratedName templateName = new(this);
 
             if (this.IsOperator)
             {
@@ -70,12 +62,12 @@ namespace MangledMaker.Core.Elements
 
 
             this.PopLists();
-            return new DecoratedName(templateName);
+            return new(templateName);
         }
 
-        private readonly Replicator localArgList = new Replicator();
-        private readonly Replicator localZNameList = new Replicator();
-        private readonly Replicator localTemplateArgList = new Replicator();
+        private readonly Replicator localArgList = new();
+        private readonly Replicator localZNameList = new();
+        private readonly Replicator localTemplateArgList = new();
         private Replicator saveArgList;
         private Replicator saveZNameList;
         private Replicator saveTemplateArgList;
@@ -114,13 +106,13 @@ namespace MangledMaker.Core.Elements
                 {
                     this.IsOperator = true;
                     pSource++;
-                    this.OperatorName = new OperatorName(this, ref pSource, true);
+                    this.OperatorName = new(this, ref pSource, true);
                     fReadTemplateArguments = this.OperatorName.ReadTemplateArguments;
                     isEmpty = this.OperatorName.Name.IsEmpty;
                 }
                 else
                 {
-                    this.ZName = new ZName(this, ref pSource, true);
+                    this.ZName = new(this, ref pSource, true);
                     isEmpty = this.ZName.Name.IsEmpty;
                 }
 
@@ -129,7 +121,7 @@ namespace MangledMaker.Core.Elements
 
                 if (!fReadTemplateArguments)
                 {
-                    this.TemplateArgumentList = new TemplateArgumentList(this, ref pSource);
+                    this.TemplateArgumentList = new(this, ref pSource);
 
                     if (this.ReadTerminator)
                         pSource++;
@@ -140,7 +132,7 @@ namespace MangledMaker.Core.Elements
 
         protected override DecoratedName GenerateCode()
         {
-            var result = new DecoratedName(this);
+            DecoratedName result = new(this);
 
             var fReadTemplateArguments = false;
             if (this.IsOperator)

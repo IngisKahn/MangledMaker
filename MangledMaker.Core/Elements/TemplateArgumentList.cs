@@ -1,35 +1,30 @@
 namespace MangledMaker.Core.Elements
 {
-    using System.Collections.Generic;
     using Attributes;
+    using System.Collections.Generic;
 
     public sealed class TemplateArgumentList : ComplexElement, ISpawnsChildren
     {
         public TemplateArgumentList(ComplexElement parent)
-            : base(parent)
-        {
-            this.Arguments = new List<TemplateArgument>();
-        }
+            : base(parent) =>
+            this.Arguments = new();
 
         public unsafe TemplateArgumentList(ComplexElement parent, ref char* pSource)
             : base(parent)
         {
-            this.Arguments = new List<TemplateArgument>();
+            this.Arguments = new();
             this.Parse(ref pSource);
         }
 
         [Child]
         public List<TemplateArgument> Arguments { get; set; }
 
-        public Element CreateChild()
-        {
-            return new TemplateArgument(this);
-        }
+        public Element CreateChild() => new TemplateArgument(this);
 
         protected override DecoratedName GenerateName()
         {
             var first = true;
-            var aList = new DecoratedName();
+            DecoratedName aList = new();
             this.UnDecorator.CanGetTemplateArgumentList = true;
 
             foreach (var arg in this.Arguments)
@@ -48,13 +43,13 @@ namespace MangledMaker.Core.Elements
 
         private unsafe void Parse(ref char* pSource)
         {
-            var aList = new DecoratedName();
+            DecoratedName aList = new();
             this.Arguments.Clear();
             while (aList.Status == NodeStatus.None
                    && *pSource != '\0'
                    && *pSource != '@')
             {
-                var arg = new TemplateArgument(this, ref pSource);
+                TemplateArgument arg = new(this, ref pSource);
                 this.Arguments.Add(arg);
                 aList.Skip(arg.Name);
             }
@@ -63,17 +58,15 @@ namespace MangledMaker.Core.Elements
         protected override DecoratedName GenerateCode()
         {
             //bool first = true;
-            var aList = new DecoratedName();
+            DecoratedName aList = new();
             this.UnDecorator.CanGetTemplateArgumentList = true;
 
             foreach (var arg in this.Arguments)
-            {
-                //if (first)
-                //    first = false;
-                //else
-                //    aList.Append(',');
+            //if (first)
+            //    first = false;
+            //else
+            //    aList.Append(',');
                 aList.Append(arg.Code);
-            }
 
             this.UnDecorator.CanGetTemplateArgumentList = false;
 

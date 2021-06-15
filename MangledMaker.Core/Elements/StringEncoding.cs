@@ -9,14 +9,17 @@ namespace MangledMaker.Core.Elements
         {
             this.Prefix = prefix;
             this.Value = value;
-            this.Length = new Dimension(this, 0);
-            this.Checksum = new Dimension(this, 0);
+            this.Length = new(this, 0);
+            this.Checksum = new(this, 0);
         }
 
         public unsafe StringEncoding(Element parent, ref char* pSource, string prefix) : base(parent)
         {
             this.Prefix = prefix;
             this.Parse(ref pSource);
+            this.Value ??= string.Empty;
+            this.Length ??= new(this);
+            this.Checksum ??= new(this);
         }
 
         [Input]
@@ -31,10 +34,7 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public string Value { get; set; }
 
-        protected override DecoratedName GenerateName()
-        {
-            return new DecoratedName(this, this.Prefix);
-        }
+        protected override DecoratedName GenerateName() => new(this, this.Prefix);
 
         private unsafe void Parse(ref char* pSource)
         {
@@ -46,10 +46,10 @@ namespace MangledMaker.Core.Elements
                     return;
                 }
                 pSource++; // text width 0=8-bit 1=16
-                this.Length = new Dimension(this, ref pSource, false);
-                this.Checksum = new Dimension(this, ref pSource, false);
+                this.Length = new(this, ref pSource, false);
+                this.Checksum = new(this, ref pSource, false);
 
-                var stringValue = new StringBuilder();
+                StringBuilder stringValue = new();
 
                 while (*pSource != '\0' && *pSource != '@')
                     stringValue.Append(*pSource++);
@@ -68,9 +68,6 @@ namespace MangledMaker.Core.Elements
                 this.IsInvalid = true;
         }
 
-        protected override DecoratedName GenerateCode()
-        {
-            return "@_0" + new DecoratedName(this, this.Length.Code + this.Checksum.Code) + this.Value + '@';
-        }
+        protected override DecoratedName GenerateCode() => "@_0" + new DecoratedName(this, this.Length.Code + this.Checksum.Code) + this.Value + '@';
     }
 }

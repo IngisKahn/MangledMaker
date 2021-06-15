@@ -32,34 +32,27 @@ namespace MangledMaker.Core.Elements
         [Input]
         public TypeEncoding TypeEncoding { get; set; }
 
+        private CallIndex? callIndex;
         [Child]
-        public CallIndex CallIndex { get; private set; }
+        public CallIndex CallIndex { get => this.callIndex ??= new(this); private set => this.callIndex = value; }
 
+        private VCallThunkType? virtualCallThunkType;
         [Child]
-        public VCallThunkType VirtualCallThunkType { get; private set; }
+        public VCallThunkType VirtualCallThunkType { get => this.virtualCallThunkType ??= new(this); private set => this.virtualCallThunkType = value; }
 
+        private CallingConvention? callingConvention;
         [Child]
-        public CallingConvention CallingConvention { get; private set; }
-
-        protected override void CreateEmptyElements()
-        {
-            if (this.CallIndex == null)
-                this.CallIndex = new CallIndex(this);
-            if (this.VirtualCallThunkType == null)
-                this.VirtualCallThunkType = new VCallThunkType(this);
-            if (this.CallingConvention == null)
-                this.CallingConvention = new CallingConvention(this);
-        }
+        public CallingConvention CallingConvention { get => this.callingConvention ??= new(this); private set => this.callingConvention = value; }
 
         protected override DecoratedName GenerateName()
         {
-            var thunkDeclaration = new DecoratedName(this, this.Declaration);
+            DecoratedName thunkDeclaration = new(this, this.Declaration);
             thunkDeclaration.Append(new DecoratedName(this, this.Symbol) + '{' + this.CallIndex.Name);
-            var vCallThunkType = new DecoratedName(this, this.VirtualCallThunkType.Name);
+            DecoratedName vCallThunkType = new(this, this.VirtualCallThunkType.Name);
             if (!this.UnDecorator.DoNameOnly)
                 thunkDeclaration.Append(',' + vCallThunkType + "}' ");
             thunkDeclaration.Append("}'");
-            var callingConvention = new DecoratedName(this, this.CallingConvention.Name);
+            DecoratedName callingConvention = new(this, this.CallingConvention.Name);
             if (this.UnDecorator.DoMicrosoftKeywords && this.UnDecorator.DoAllocationLanguage &&
                 !this.UnDecorator.DoNameOnly)
                 thunkDeclaration.Prepend(' ' + callingConvention + ' ');
@@ -68,14 +61,11 @@ namespace MangledMaker.Core.Elements
 
         private unsafe void Parse(ref char* pSource)
         {
-            this.CallIndex = new CallIndex(this, ref pSource);
-            this.VirtualCallThunkType = new VCallThunkType(this, ref pSource);
-            this.CallingConvention = new CallingConvention(this, ref pSource);
+            this.CallIndex = new(this, ref pSource);
+            this.VirtualCallThunkType = new(this, ref pSource);
+            this.CallingConvention = new(this, ref pSource);
         }
 
-        protected override DecoratedName GenerateCode()
-        {
-            return this.CallIndex.Code + this.VirtualCallThunkType.Code + this.CallingConvention.Code;
-        }
+        protected override DecoratedName GenerateCode() => this.CallIndex.Code + this.VirtualCallThunkType.Code + this.CallingConvention.Code;
     }
 }

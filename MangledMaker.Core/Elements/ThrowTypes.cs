@@ -4,7 +4,8 @@ namespace MangledMaker.Core.Elements
 
     public sealed class ThrowTypes : ComplexElement
     {
-        private ArgumentTypes argumentTypes;
+        private ArgumentTypes? argumentTypes;
+        private ArgumentTypes ArgumentTypesSafe => this.argumentTypes ??= new(this);
         private bool isHidden;
 
         public ThrowTypes(ComplexElement parent)
@@ -12,10 +13,8 @@ namespace MangledMaker.Core.Elements
         { }
 
         public unsafe ThrowTypes(ComplexElement parent, ref char* pSource)
-            : base(parent)
-        {
+            : base(parent) =>
             this.Parse(ref pSource);
-        }
 
         [Setting]
         public bool IsMissing { get; set; }
@@ -23,30 +22,22 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public bool? IsHidden
         {
-            get { return this.IsMissing ? (bool?)null : this.isHidden; }
+            get => this.IsMissing ? null : this.isHidden;
             set { if (value != null) this.isHidden = (bool)value; }
         }
 
         [Child]
-        public ArgumentTypes ArgumentTypes
-        {
-            get { return this.IsMissing || this.isHidden ? null : this.argumentTypes; }
-        }
-
-        protected override void CreateEmptyElements()
-        {
-            if (this.argumentTypes == null) this.argumentTypes = new ArgumentTypes(this);
-        }
+        public ArgumentTypes? ArgumentTypes => this.IsMissing || this.isHidden ? null : this.argumentTypes;
 
         protected override DecoratedName GenerateName()
         {
-            var name = new DecoratedName(this);
+            DecoratedName name = new(this);
             if (!this.IsMissing)
             {
                 if (this.isHidden) 
                     return name;
                 name += " throw(";
-                name += this.argumentTypes.Name;
+                name += this.ArgumentTypesSafe.Name;
                 name += ')';
             }
             else
@@ -56,14 +47,14 @@ namespace MangledMaker.Core.Elements
 
         private unsafe void Parse(ref char* pSource)
         {                 
-#pragma warning disable 665
+            // ReSharper disable AssignmentInConditionalExpression
             if (this.IsMissing = *pSource == '\0') 
                 return;
             if (this.isHidden = *pSource == 'Z')
-#pragma warning restore 665
+                // ReSharper restore AssignmentInConditionalExpression
                 pSource++;
             else
-                this.argumentTypes = new ArgumentTypes(this, ref pSource);
+                this.argumentTypes = new(this, ref pSource);
         }
 
         protected override DecoratedName GenerateCode()
@@ -73,7 +64,7 @@ namespace MangledMaker.Core.Elements
                 if (this.isHidden)
                     code.Assign('Z');
                 else
-                    code.Assign(this.argumentTypes.Code);
+                    code.Assign(this.ArgumentTypesSafe.Code);
             else
                 code.Assign('\0');
             return code;

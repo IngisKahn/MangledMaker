@@ -28,30 +28,23 @@ namespace MangledMaker.Core.Elements
         }
 
         public unsafe TemplateArgument(ComplexElement parent, ref char* pSource)
-            : base(parent)
-        {
+            : base(parent) =>
             this.Parse(ref pSource);
-        }
 
         [Setting]
         public TemplateArgumentTypes ArgumentType { get; set; }
 
+        private TemplateConstant? constant;
         [Child]
-        public TemplateConstant Constant { get; private set; }
+        public TemplateConstant Constant { get => this.constant ??= new(this); private set => this.constant = value; }
 
+        private SignedDimension? parameterIndex;
         [Child]
-        public SignedDimension ParameterIndex { get; private set; }
+        public SignedDimension ParameterIndex { get => this.parameterIndex ??= new(this, true) { FixedSign = true }; private set => this.parameterIndex = value; }
 
+        private PrimaryDataType? type;
         [Child]
-        public PrimaryDataType Type { get; private set; }
-
-        protected override void CreateEmptyElements()
-        {
-            if (this.ParameterIndex == null)
-                this.ParameterIndex = new SignedDimension(this, true) {FixedSign = true};
-            if (this.Constant == null) this.Constant = new TemplateConstant(this);
-            if (this.Type == null) this.Type = new PrimaryDataType(this, new DecoratedName());
-        }
+        public PrimaryDataType Type { get => this.type ??= new(this, new()); private set => this.type = value; }
 
         protected override DecoratedName GenerateName()
         {
@@ -109,36 +102,32 @@ namespace MangledMaker.Core.Elements
         private unsafe void Parse(ref char* pSource)
         {
             var numeric = *pSource - 30;
-            if (numeric >= 0 && (numeric <= 9))
+            if (numeric is >= 0 and <= 9)
             {
                 pSource++;
                 this.ArgumentType = (TemplateArgumentTypes)numeric;
             }
             else
             {
-                if (*pSource == 'X')
+                switch (*pSource)
                 {
-                    pSource++;
-                    this.ArgumentType = TemplateArgumentTypes.Void;
-                }
-                else
-                {
-                    if (*pSource == '$' && pSource[1] != '$')
-                    {
+                    case 'X':
                         pSource++;
-                        this.Constant = new TemplateConstant(this, ref pSource);
+                        this.ArgumentType = TemplateArgumentTypes.Void;
+                        break;
+                    case '$' when pSource[1] != '$':
+                        pSource++;
+                        this.Constant = new(this, ref pSource);
                         this.ArgumentType = TemplateArgumentTypes.Constant;
-                    }
-                    else if (*pSource == '?')
-                    {
-                        this.ParameterIndex = new SignedDimension(this, ref pSource) {FixedSign = true};
+                        break;
+                    case '?':
+                        this.ParameterIndex = new(this, ref pSource) { FixedSign = true };
                         this.ArgumentType = TemplateArgumentTypes.Parameter;
-                    }
-                    else
-                    {
-                        this.Type = new PrimaryDataType(this, ref pSource, new DecoratedName());
+                        break;
+                    default:
+                        this.Type = new(this, ref pSource, new());
                         this.ArgumentType = TemplateArgumentTypes.Type;
-                    }
+                        break;
                 }
 
                 var result = this.Name;
@@ -149,7 +138,7 @@ namespace MangledMaker.Core.Elements
 
         protected override DecoratedName GenerateCode()
         {
-            var result = new DecoratedName(this);
+            DecoratedName result = new(this);
             switch (this.ArgumentType)
             {
                 case TemplateArgumentTypes.Saved1:

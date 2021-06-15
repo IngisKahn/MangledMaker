@@ -124,14 +124,14 @@ namespace MangledMaker.Core.Elements
         public enum EncodingType
         {
             GlobalFunction,
-            MemberFuntion,
+            MemberFunction,
             VirtualConstructorThunk,
             VirtualConstructorThunkExtended,
             LocalStaticDestructorHelper,
             TypedThunk,
             VirtualDisplacementMap,
             TemplateMemberConstructorHelper,
-            TemplateMemberDesructorHelper,
+            TemplateMemberDestructorHelper,
             StaticField,
             Global,
             GlobalFlagged,
@@ -160,10 +160,8 @@ namespace MangledMaker.Core.Elements
         }
 
         public unsafe TypeEncoding(Element parent, ref char* pSource)
-            : base(parent)
-        {
+            : base(parent) =>
             this.Parse(ref pSource);
-        }
 
         [Setting(MaxLength = 9)]
         public string ExternSymbol { get; set; }
@@ -178,7 +176,7 @@ namespace MangledMaker.Core.Elements
             {
                 switch (this.Type)
                 {
-                    case EncodingType.MemberFuntion:
+                    case EncodingType.MemberFunction:
                     case EncodingType.StaticField:
                         return this.access;
                 }
@@ -190,7 +188,7 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public FunctionModifier? Modifier
         {
-            get { return this.Type == EncodingType.MemberFuntion ? this.modifier : (FunctionModifier?)null; }
+            get => this.Type == EncodingType.MemberFunction ? this.modifier : null;
             set { if (value != null) this.modifier = (FunctionModifier)value; }
         }
 
@@ -205,7 +203,7 @@ namespace MangledMaker.Core.Elements
                 switch (this.Type)
                 {
                     case EncodingType.GlobalFunction:
-                    case EncodingType.MemberFuntion:
+                    case EncodingType.MemberFunction:
                     case EncodingType.TypedThunk:
                     case EncodingType.VirtualConstructorThunk:
                     case EncodingType.VirtualConstructorThunkExtended:
@@ -224,7 +222,7 @@ namespace MangledMaker.Core.Elements
                 switch (this.Type)
                 {
                     case EncodingType.StaticField:
-                    case EncodingType.MemberFuntion:
+                    case EncodingType.MemberFunction:
                     case EncodingType.TypedThunk:
                     case EncodingType.VirtualConstructorThunk:
                     case EncodingType.VirtualConstructorThunkExtended:
@@ -239,7 +237,7 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public bool? IsExternC
         {
-            get { return string.IsNullOrEmpty(this.ExternSymbol) ? (bool?)null : this.isExternC; }
+            get => string.IsNullOrEmpty(this.ExternSymbol) ? null : this.isExternC;
             set { if (value != null) this.isExternC = (bool)value; }
         }
 
@@ -250,10 +248,10 @@ namespace MangledMaker.Core.Elements
                 switch (this.Type)
                 {
                     case EncodingType.GlobalFunction:
-                    case EncodingType.MemberFuntion:
+                    case EncodingType.MemberFunction:
                     case EncodingType.LocalStaticDestructorHelper:
                     case EncodingType.TemplateMemberConstructorHelper:
-                    case EncodingType.TemplateMemberDesructorHelper:
+                    case EncodingType.TemplateMemberDestructorHelper:
                     case EncodingType.TypedThunk:
                     case EncodingType.VirtualConstructorThunk:
                     case EncodingType.VirtualConstructorThunkExtended:
@@ -263,50 +261,23 @@ namespace MangledMaker.Core.Elements
             }
         }
 
-        public bool IsGuard
-        {
-            get { return this.Type == EncodingType.Guard; }
-        }
+        public bool IsGuard => this.Type == EncodingType.Guard;
 
-        public bool IsNone
-        {
-            get { return this.Type == EncodingType.NoEncoding; }
-        }
+        public bool IsNone => this.Type == EncodingType.NoEncoding;
 
-        public bool IsDestructorHelper
-        {
-            get { return this.Type == EncodingType.LocalStaticDestructorHelper; }
-        }
+        public bool IsDestructorHelper => this.Type == EncodingType.LocalStaticDestructorHelper;
 
-        public bool IsPrivate
-        {
-            get { return this.IsClass && this.access == AccessSpecifier.Private; }
-        }
+        public bool IsPrivate => this.IsClass && this.access == AccessSpecifier.Private;
 
-        public bool IsProtected
-        {
-            get { return this.IsClass && this.access == AccessSpecifier.Protected; }
-        }
+        public bool IsProtected => this.IsClass && this.access == AccessSpecifier.Protected;
 
-        public bool IsPublic
-        {
-            get { return this.IsClass && this.access == AccessSpecifier.Public; }
-        }
+        public bool IsPublic => this.IsClass && this.access == AccessSpecifier.Public;
 
-        public bool IsDataMemberDestructorHelper
-        {
-            get { return this.Type == EncodingType.TemplateMemberDesructorHelper; }
-        }
+        public bool IsDataMemberDestructorHelper => this.Type == EncodingType.TemplateMemberDestructorHelper;
 
-        public bool IsName
-        {
-            get { return this.Type == EncodingType.Name; }
-        }
+        public bool IsName => this.Type == EncodingType.Name;
 
-        public bool IsMemberStatic
-        {
-            get { return this.IsClass && (!this.IsFunction || this.modifier == FunctionModifier.Static); }
-        }
+        public bool IsMemberStatic => this.IsClass && (!this.IsFunction || this.modifier == FunctionModifier.Static);
 
         public bool IsThunk
         {
@@ -314,11 +285,11 @@ namespace MangledMaker.Core.Elements
             {
                 switch (this.Type)
                 {
-                    case EncodingType.MemberFuntion:
+                    case EncodingType.MemberFunction:
                         return this.modifier == FunctionModifier.VirtualThunk;
                     case EncodingType.LocalStaticDestructorHelper:
                     case EncodingType.TemplateMemberConstructorHelper:
-                    case EncodingType.TemplateMemberDesructorHelper:
+                    case EncodingType.TemplateMemberDestructorHelper:
                     case EncodingType.VirtualConstructorThunk:
                     case EncodingType.VirtualConstructorThunkExtended:
                     case EncodingType.TypedThunk:
@@ -328,40 +299,19 @@ namespace MangledMaker.Core.Elements
             }
         }
 
-        public bool IsTypedThunk
-        {
-            get { return this.Type == EncodingType.TypedThunk; }
-        }
+        public bool IsTypedThunk => this.Type == EncodingType.TypedThunk;
 
-        public bool IsDataMemberConstructorHelper
-        {
-            get { return this.Type == EncodingType.TemplateMemberConstructorHelper; }
-        }
+        public bool IsDataMemberConstructorHelper => this.Type == EncodingType.TemplateMemberConstructorHelper;
 
-        public bool IsVirtualConstructor
-        {
-            get { return this.Type == EncodingType.VirtualConstructorThunk; }
-        }
+        public bool IsVirtualConstructor => this.Type == EncodingType.VirtualConstructorThunk;
 
-        public bool IsVirtualConstructorExtended
-        {
-            get { return this.Type == EncodingType.VirtualConstructorThunkExtended; }
-        }
+        public bool IsVirtualConstructorExtended => this.Type == EncodingType.VirtualConstructorThunkExtended;
 
-        public bool IsVirtualFunctionTable
-        {
-            get { return this.Type == EncodingType.VirtualFunctionTable; }
-        }
+        public bool IsVirtualFunctionTable => this.Type == EncodingType.VirtualFunctionTable;
 
-        public bool IsVirtualBaseTable
-        {
-            get { return this.Type == EncodingType.VirtualBaseTable; }
-        }
+        public bool IsVirtualBaseTable => this.Type == EncodingType.VirtualBaseTable;
 
-        public bool IsVirtualDisplacementMap
-        {
-            get { return this.Type == EncodingType.VirtualDisplacementMap; }
-        }
+        public bool IsVirtualDisplacementMap => this.Type == EncodingType.VirtualDisplacementMap;
 
         public bool IsMemberVirtual
         {
@@ -369,7 +319,7 @@ namespace MangledMaker.Core.Elements
             {
                 switch (this.Type)
                 {
-                    case EncodingType.MemberFuntion:
+                    case EncodingType.MemberFunction:
                         return this.modifier == FunctionModifier.Virtual ||
                                this.modifier == FunctionModifier.VirtualThunk;
                     case EncodingType.VirtualConstructorThunk:
@@ -380,10 +330,7 @@ namespace MangledMaker.Core.Elements
             }
         }
 
-        protected override DecoratedName GenerateName()
-        {
-            return new DecoratedName(this);
-        }
+        protected override DecoratedName GenerateName() => new(this);
 
         private unsafe void Parse(ref char* pSource)
         {
@@ -393,52 +340,49 @@ namespace MangledMaker.Core.Elements
                 pSource++;
             }
 
-            // parse a letter signaling a member declaration
-            if (*pSource >= 'A' && *pSource <= 'Z')
+            switch (*pSource)
             {
-                var letterValue = *pSource++ - 'A';
-                this.IsFar = ((letterValue & 1) != 0); // every other letter signals far
-                //B D F H J L N P R T V X Z
-
-                // Y & Z are ignored
-                if (letterValue < 0x18) // A B C D E F G H I J K L M N O P Q R S T U V W X
+                // parse a letter signaling a member declaration
+                case >= 'A' and <= 'Z':
                 {
-                    this.Type = EncodingType.MemberFuntion;
-                    switch (letterValue & 0x18)
+                    var letterValue = *pSource++ - 'A';
+                    this.IsFar = (letterValue & 1) != 0; // every other letter signals far
+                    //B D F H J L N P R T V X Z
+
+                    // Y & Z are ignored
+                    if (letterValue < 0x18) // A B C D E F G H I J K L M N O P Q R S T U V W X
                     {
-                        case 0x0: // A B C D E F G H
-                            this.access = AccessSpecifier.Private;
-                            break;
-                        case 0x8: // I J K L M N O P
-                            this.access = AccessSpecifier.Protected;
-                            break;
-                        case 0x10: // Q R S T U V W X
-                            this.access = AccessSpecifier.Public;
-                            break;
+                        this.Type = EncodingType.MemberFunction;
+                        this.access = (letterValue & 0x18) switch
+                        {
+                            0x0 => // A B C D E F G H
+                                AccessSpecifier.Private,
+                            0x8 => // I J K L M N O P
+                                AccessSpecifier.Protected,
+                            0x10 => // Q R S T U V W X
+                                AccessSpecifier.Public,
+                            _ => this.access
+                        };
+                        this.modifier = (letterValue & 6) switch
+                        {
+                            0 => // A B I J Q R
+                                FunctionModifier.None,
+                            2 => // C D K L S T
+                                FunctionModifier.Static,
+                            4 => // E F M N U V
+                                FunctionModifier.Virtual,
+                            6 => // G H O P W X
+                                FunctionModifier.VirtualThunk,
+                            _ => this.modifier
+                        };
                     }
-                    switch (letterValue & 6)
-                    {
-                        case 0: // A B I J Q R
-                            this.modifier = FunctionModifier.None;
-                            break;
-                        case 2: // C D K L S T
-                            this.modifier = FunctionModifier.Static;
-                            break;
-                        case 4: // E F M N U V
-                            this.modifier = FunctionModifier.Virtual;
-                            break;
-                        case 6: // G H O P W X
-                            this.modifier = FunctionModifier.VirtualThunk;
-                            break;
-                    }
+                    else
+                        this.Type = EncodingType.GlobalFunction;
+
+                    break;
                 }
-                else
-                    this.Type = EncodingType.GlobalFunction;
-            }
-            else
-            {
                 // a $ special type
-                if (*pSource == '$')
+                case '$':
                 {
                     var dispexFlag = false;
                     switch (*++pSource)
@@ -454,7 +398,7 @@ namespace MangledMaker.Core.Elements
 
                             switch (*++pSource)
                             {
-                                    // start again
+                                // start again
                                 case 'F': // $$F
                                 case 'H': // $$H
                                 case 'L': // $$L
@@ -463,7 +407,7 @@ namespace MangledMaker.Core.Elements
                                     this.Parse(ref pSource);
                                     return;
 
-                                    // these all signal a skipped name for extern c (seems buggy)
+                                // these all signal a skipped name for extern c (seems buggy)
                                 case 'J': // $$J#xxx
                                 case 'N': // $$N#xxx
                                 case 'O': // $$O#xxx
@@ -498,10 +442,10 @@ namespace MangledMaker.Core.Elements
                             this.Type = EncodingType.TemplateMemberConstructorHelper;
                             break;
                         case 'E': //[thunk]: NAME`template static data member destructor helper'
-                            this.Type = EncodingType.TemplateMemberDesructorHelper;
+                            this.Type = EncodingType.TemplateMemberDestructorHelper;
                             break;
 
-                            // the following are vtordisp thunks
+                        // the following are vtordisp thunks
                         case 'R':
                             pSource++;
                             dispexFlag = true;
@@ -514,8 +458,8 @@ namespace MangledMaker.Core.Elements
                         case '5':
                             var numericValue = *pSource - '0';
                             this.Type = dispexFlag
-                                            ? EncodingType.VirtualConstructorThunkExtended
-                                            : EncodingType.VirtualConstructorThunk;
+                                ? EncodingType.VirtualConstructorThunkExtended
+                                : EncodingType.VirtualConstructorThunk;
                             this.IsFar = ((numericValue & 1) != 0);
                             switch (numericValue & 6)
                             {
@@ -538,64 +482,64 @@ namespace MangledMaker.Core.Elements
                             return;
                     }
                     pSource++;
+                    break;
                 }
-                else
-                {
-                    // Globals
-                    if (*pSource >= '0' && *pSource <= '8')
-                        switch (*pSource++)
-                        {
-                            case '0':
-                                this.Type = EncodingType.StaticField;
-                                this.access = AccessSpecifier.Private;
-                                break;
-                            case '1':
-                                this.Type = EncodingType.StaticField;
-                                this.access = AccessSpecifier.Protected;
-                                break;
-                            case '2':
-                                this.Type = EncodingType.StaticField;
-                                this.access = AccessSpecifier.Public;
-                                break;
-                            case '3':
-                                this.Type = EncodingType.Global;
-                                break;
-                            case '4':
-                                this.Type = EncodingType.GlobalFlagged;
-                                break;
-                            case '5':
-                                this.Type = EncodingType.Guard;
-                                break;
-                            case '6':
-                                this.Type = EncodingType.VirtualFunctionTable;
-                                break;
-                            case '7':
-                                this.Type = EncodingType.VirtualBaseTable;
-                                break;
-                            case '8':
-                                this.Type = EncodingType.Name;
-                                break;
-                        }
-                    else
+                // Globals
+                case >= '0' and <= '8':
+                    switch (*pSource++)
                     {
-                        // 9 is name only, game over
-                        if (*pSource == '9')
-                        {
-                            pSource++;
-                            this.Type = EncodingType.NoEncoding;
-                        }
-                        else if (*pSource != '\0')
-                            this.IsInvalid = true;
-                        else
-                            this.IsTruncated = true;
+                        case '0':
+                            this.Type = EncodingType.StaticField;
+                            this.access = AccessSpecifier.Private;
+                            break;
+                        case '1':
+                            this.Type = EncodingType.StaticField;
+                            this.access = AccessSpecifier.Protected;
+                            break;
+                        case '2':
+                            this.Type = EncodingType.StaticField;
+                            this.access = AccessSpecifier.Public;
+                            break;
+                        case '3':
+                            this.Type = EncodingType.Global;
+                            break;
+                        case '4':
+                            this.Type = EncodingType.GlobalFlagged;
+                            break;
+                        case '5':
+                            this.Type = EncodingType.Guard;
+                            break;
+                        case '6':
+                            this.Type = EncodingType.VirtualFunctionTable;
+                            break;
+                        case '7':
+                            this.Type = EncodingType.VirtualBaseTable;
+                            break;
+                        case '8':
+                            this.Type = EncodingType.Name;
+                            break;
                     }
+
+                    break;
+                // 9 is name only, game over
+                case '9':
+                    pSource++;
+                    this.Type = EncodingType.NoEncoding;
+                    break;
+                default:
+                {
+                    if (*pSource != '\0')
+                        this.IsInvalid = true;
+                    else
+                        this.IsTruncated = true;
+                    break;
                 }
             }
         }
 
         protected override DecoratedName GenerateCode()
         {
-            var code = new DecoratedName(this);
+            DecoratedName code = new(this);
 
             if (this.IsBased != null && (bool)this.IsBased)
                 code += '_';
@@ -605,11 +549,11 @@ namespace MangledMaker.Core.Elements
             switch (this.Type)
             {
                 case EncodingType.GlobalFunction:
-                case EncodingType.MemberFuntion:
+                case EncodingType.MemberFunction:
                     c = 'A';
                     if (this.IsFar)
                         c++;
-                    if (this.Type == EncodingType.MemberFuntion)
+                    if (this.Type == EncodingType.MemberFunction)
                     {
                         switch (this.access)
                         {
@@ -670,23 +614,18 @@ namespace MangledMaker.Core.Elements
                     code += '$';
                     c = 'D';
                     break;
-                case EncodingType.TemplateMemberDesructorHelper:
+                case EncodingType.TemplateMemberDestructorHelper:
                     code += '$';
                     c = 'E';
                     break;
                 case EncodingType.StaticField:
-                    switch (this.access)
+                    c = this.access switch
                     {
-                        case AccessSpecifier.Private:
-                            c = '0';
-                            break;
-                        case AccessSpecifier.Protected:
-                            c = '1';
-                            break;
-                        case AccessSpecifier.Public:
-                            c = '2';
-                            break;
-                    }
+                        AccessSpecifier.Private => '0',
+                        AccessSpecifier.Protected => '1',
+                        AccessSpecifier.Public => '2',
+                        _ => c
+                    };
                     break;
                 case EncodingType.Global:
                     c = '3';
