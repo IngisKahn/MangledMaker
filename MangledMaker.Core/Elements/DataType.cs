@@ -20,16 +20,16 @@ namespace MangledMaker.Core.Elements
 
         private PrimaryDataType? primaryDataType;
 
-        public DataType(ComplexElement parent, DecoratedName declarator)
+        public DataType(ComplexElement parent, DecoratedName? declarator)
             : base(parent) =>
             this.Declarator = declarator;
 
-        public unsafe DataType(ComplexElement parent, ref char* pSource, DecoratedName declarator)
+        public unsafe DataType(ComplexElement parent, ref char* pSource, DecoratedName? declarator)
             : this(parent, declarator) =>
             this.Parse(ref pSource);
 
         [Input]
-        public DecoratedName Declarator { get; set; }
+        public DecoratedName? Declarator { get; set; }
 
         [Setting]
         public DataTypeMode Mode

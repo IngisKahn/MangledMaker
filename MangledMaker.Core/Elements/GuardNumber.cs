@@ -4,32 +4,15 @@ namespace MangledMaker.Core.Elements
 
     public sealed class GuardNumber : Element
     {
-        public GuardNumber(Element parent) : base(parent)
-        {
-            this.Number = new Dimension(this, 0);
-        }
+        public GuardNumber(Element parent) : base(parent) => this.Number = new(this, 0);
 
-        public unsafe GuardNumber(Element parent, ref char* pSource) : base(parent)
-        {
-            this.Parse(ref pSource);
-        }
+        public unsafe GuardNumber(Element parent, ref char* pSource) : base(parent) => this.Number = new(this, ref pSource, false);
 
         [Child]
-        public Dimension Number { get; private set; }
+        public Dimension Number { get; }
 
-        protected override DecoratedName GenerateName()
-        {
-            return this.Number.Name;
-        }
+        protected override DecoratedName GenerateName() => this.Number.Name;
 
-        private unsafe void Parse(ref char* pSource)
-        {
-            this.Number = new Dimension(this, ref pSource, false);
-        }
-
-        protected override DecoratedName GenerateCode()
-        {
-            return this.Number.Code;
-        }
+        protected override DecoratedName GenerateCode() => this.Number.Code;
     }
 }

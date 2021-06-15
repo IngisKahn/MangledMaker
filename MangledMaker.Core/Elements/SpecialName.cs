@@ -4,13 +4,18 @@ namespace MangledMaker.Core.Elements
 
     public sealed class SpecialName : ComplexElement
     {
-        private ExternalDataType externalDataType;
-        private GuardNumber guardNumber;
+        private ExternalDataType? externalDataType;
+        private ExternalDataType ExternalDataTypeSafe => this.externalDataType ??= new(this, this.Symbol);
+        private GuardNumber? guardNumber;
+        private GuardNumber GuardNumberSafe => this.guardNumber ??= new(this);
 
-        private VbTableType virtualBaseTableType;
-        private VdispMapType virtualDisplacementMapType;
+        private VbTableType? virtualBaseTableType;
+        private VbTableType VirtualBaseTableTypeSafe => this.virtualBaseTableType ??= new(this, this.Symbol);
+        private VdispMapType? virtualDisplacementMapType;
+        private VdispMapType VirtualDisplacementMapTypeSafe => this.virtualDisplacementMapType ??= new(this, this.Symbol);
 
-        private VfTableType virtualFunctionTableType;
+        private VfTableType? virtualFunctionTableType;
+        private VfTableType VirtualFunctionTableTypeSafe => this.virtualFunctionTableType ??= new(this, this.Symbol);
 
         public SpecialName(ComplexElement parent, TypeEncoding typeEncoding,
                            DecoratedName symbol)
@@ -22,10 +27,8 @@ namespace MangledMaker.Core.Elements
 
         public unsafe SpecialName(ComplexElement parent, ref char* pSource,
                                   TypeEncoding typeEncoding, DecoratedName symbol)
-            : this(parent, typeEncoding, symbol)
-        {
+            : this(parent, typeEncoding, symbol) =>
             this.Parse(ref pSource);
-        }
 
         [Input]
         public DecoratedName Symbol { get; set; }
@@ -34,90 +37,58 @@ namespace MangledMaker.Core.Elements
         public TypeEncoding TypeEncoding { get; set; }
 
         [Child]
-        public VfTableType VirtualFunctionTableType
-        {
-            get { return this.TypeEncoding.IsVirtualFunctionTable ? this.virtualFunctionTableType : null; }
-        }
+        public VfTableType? VirtualFunctionTableType => this.TypeEncoding.IsVirtualFunctionTable ? this.virtualFunctionTableType : null;
 
         [Child]
-        public VbTableType VirtualBaseTableType
-        {
-            get { return this.TypeEncoding.IsVirtualBaseTable ? this.virtualBaseTableType : null; }
-        }
+        public VbTableType? VirtualBaseTableType => this.TypeEncoding.IsVirtualBaseTable ? this.virtualBaseTableType : null;
 
         [Child]
-        public GuardNumber GuardNumber
-        {
-            get { return this.TypeEncoding.IsGuard ? this.guardNumber : null; }
-        }
+        public GuardNumber? GuardNumber => this.TypeEncoding.IsGuard ? this.guardNumber : null;
 
         [Child]
-        public VdispMapType VirtualDisplacementMapType
-        {
-            get { return this.TypeEncoding.IsVirtualDisplacementMap ? this.virtualDisplacementMapType : null; }
-        }
+        public VdispMapType? VirtualDisplacementMapType => this.TypeEncoding.IsVirtualDisplacementMap ? this.virtualDisplacementMapType : null;
 
         [Child]
-        public ExternalDataType ExternalDataType
-        {
-            get
-            {
-                if (!this.TypeEncoding.IsVirtualFunctionTable &&
-                    !this.TypeEncoding.IsVirtualBaseTable &&
-                    !this.TypeEncoding.IsGuard &&
-                    !this.TypeEncoding.IsVirtualDisplacementMap &&
-                    !(this.TypeEncoding.IsDataMemberConstructorHelper ||
-                      this.TypeEncoding.IsDataMemberDestructorHelper) &&
-                    !(!this.TypeEncoding.IsThunk && !this.TypeEncoding.IsDestructorHelper &&
-                      this.TypeEncoding.IsName)
-                    )
-                    return this.externalDataType;
-                return null;
-            }
-        }
+        public ExternalDataType? ExternalDataType =>
+            !this.TypeEncoding.IsVirtualFunctionTable &&
+            !this.TypeEncoding.IsVirtualBaseTable &&
+            !this.TypeEncoding.IsGuard &&
+            !this.TypeEncoding.IsVirtualDisplacementMap &&
+            !(this.TypeEncoding.IsDataMemberConstructorHelper ||
+              this.TypeEncoding.IsDataMemberDestructorHelper) &&
+            !(!this.TypeEncoding.IsThunk && !this.TypeEncoding.IsDestructorHelper &&
+              this.TypeEncoding.IsName)
+                ? this.externalDataType
+                : null;
 
         [Output]
         public bool NeedsModifiers { get; private set; }
-
-        protected override void CreateEmptyElements()
-        {
-            if (this.virtualFunctionTableType == null)
-                this.virtualFunctionTableType = new VfTableType(this, this.Symbol);
-            if (this.virtualBaseTableType == null)
-                this.virtualBaseTableType = new VbTableType(this, this.Symbol);
-            if (this.guardNumber == null)
-                this.guardNumber = new GuardNumber(this);
-            if (this.virtualDisplacementMapType == null)
-                this.virtualDisplacementMapType = new VdispMapType(this, this.Symbol);
-            if (this.externalDataType == null)
-                this.externalDataType = new ExternalDataType(this, this.Symbol);
-        }
 
         protected override DecoratedName GenerateName()
         {
             this.NeedsModifiers = false;
 
-            var declaration = new DecoratedName(this, this.Symbol);
+            DecoratedName declaration = new(this, this.Symbol);
             if (this.TypeEncoding.IsVirtualFunctionTable)
             {
-                this.virtualFunctionTableType.SuperType = declaration;
-                return this.virtualFunctionTableType.Name;
+                this.VirtualFunctionTableTypeSafe.SuperType = declaration;
+                return this.VirtualFunctionTableTypeSafe.Name;
             }
             if (this.TypeEncoding.IsVirtualBaseTable)
             {
-                this.virtualBaseTableType.SuperType = declaration;
-                return this.virtualBaseTableType.Name;
+                this.VirtualBaseTableTypeSafe.SuperType = declaration;
+                return this.VirtualBaseTableTypeSafe.Name;
             }
             if (this.TypeEncoding.IsGuard)
             {
                 declaration.Append('{');
-                declaration.Append(this.guardNumber.Name);
+                declaration.Append(this.GuardNumberSafe.Name);
                 return declaration + "}'";
             }
             if (this.TypeEncoding.IsVirtualDisplacementMap)
             {
-                this.virtualDisplacementMapType.SuperType = declaration;
-                return this.virtualDisplacementMapType.Name;
+                this.VirtualDisplacementMapTypeSafe.SuperType = declaration;
+                return this.VirtualDisplacementMapTypeSafe.Name;
             }
 
             if (this.TypeEncoding.IsThunk && this.TypeEncoding.IsDestructorHelper)
@@ -134,8 +105,8 @@ namespace MangledMaker.Core.Elements
                 declaration.Prepend(' ');
             else
             {
-                this.externalDataType.SuperType = declaration;
-                declaration.Assign(this.externalDataType.Name);
+                this.ExternalDataTypeSafe.SuperType = declaration;
+                declaration.Assign(this.ExternalDataTypeSafe.Name);
             }
 
             this.NeedsModifiers = true;
@@ -146,22 +117,22 @@ namespace MangledMaker.Core.Elements
         {
             if (this.TypeEncoding.IsVirtualFunctionTable)
             {
-                this.virtualFunctionTableType = new VfTableType(this, ref pSource, this.Symbol);
+                this.virtualFunctionTableType = new(this, ref pSource, this.Symbol);
                 return;
             }
             if (this.TypeEncoding.IsVirtualBaseTable)
             {
-                this.virtualBaseTableType = new VbTableType(this, ref pSource, this.Symbol);
+                this.virtualBaseTableType = new(this, ref pSource, this.Symbol);
                 return;
             }
             if (this.TypeEncoding.IsGuard)
             {
-                this.guardNumber = new GuardNumber(this, ref pSource);
+                this.guardNumber = new(this, ref pSource);
                 return;
             }
             if (this.TypeEncoding.IsVirtualDisplacementMap)
             {
-                this.virtualDisplacementMapType = new VdispMapType(this, ref pSource, this.Symbol);
+                this.virtualDisplacementMapType = new(this, ref pSource, this.Symbol);
                 return;
             }
 
@@ -173,31 +144,31 @@ namespace MangledMaker.Core.Elements
 
             if (!(this.TypeEncoding.IsDataMemberConstructorHelper ||
                   this.TypeEncoding.IsDataMemberDestructorHelper))
-                this.externalDataType = new ExternalDataType(this, ref pSource, this.Symbol);
+                this.externalDataType = new(this, ref pSource, this.Symbol);
         }
 
         protected override DecoratedName GenerateCode()
         {
             if (this.TypeEncoding.IsVirtualFunctionTable)
-                return this.virtualFunctionTableType.Code;
+                return this.VirtualFunctionTableTypeSafe.Code;
             if (this.TypeEncoding.IsVirtualBaseTable)
-                return this.virtualBaseTableType.Code;
+                return this.VirtualBaseTableTypeSafe.Code;
             if (this.TypeEncoding.IsGuard)
-                return this.guardNumber.Code;
+                return this.GuardNumberSafe.Code;
             if (this.TypeEncoding.IsVirtualDisplacementMap)
-                return this.virtualDisplacementMapType.Code;
+                return this.VirtualDisplacementMapTypeSafe.Code;
 
             if (!(this.TypeEncoding.IsThunk && this.TypeEncoding.IsDestructorHelper) &&
                 !this.TypeEncoding.IsDataMemberConstructorHelper &&
                 !this.TypeEncoding.IsDataMemberDestructorHelper &&
                 this.TypeEncoding.IsName)
-                return new DecoratedName();
+                return new();
 
             if (!(this.TypeEncoding.IsDataMemberConstructorHelper ||
                   this.TypeEncoding.IsDataMemberDestructorHelper))
-                return this.externalDataType.Code;
+                return this.ExternalDataTypeSafe.Code;
 
-            return new DecoratedName();
+            return new();
         }
     }
 }

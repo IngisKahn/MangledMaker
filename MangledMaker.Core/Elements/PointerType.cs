@@ -14,10 +14,9 @@ namespace MangledMaker.Core.Elements
 
         public unsafe PointerType(ComplexElement parent, ref char* pSource,
                                   DecoratedName superType, DecoratedName cvType)
-            : this(parent, superType, cvType)
-        {
-            this.Parse(ref pSource);
-        }
+            : this(parent, superType, cvType) =>
+            this.PtrRefType = new(this, ref pSource, this.CvType, this.SuperType,
+                IndirectType.Pointer);
 
         [Input]
         public DecoratedName SuperType { get; set; }
@@ -25,14 +24,13 @@ namespace MangledMaker.Core.Elements
         [Input]
         public DecoratedName CvType { get; set; }
 
-        [Child]
-        public PtrRefType PtrRefType { get; private set; }
+        private PtrRefType? ptrRefType;
 
-        protected override void CreateEmptyElements()
+        [Child]
+        public PtrRefType PtrRefType
         {
-            if (this.PtrRefType == null)
-                this.PtrRefType = new PtrRefType(this, this.CvType, this.SuperType,
-                                                 IndirectType.Pointer);
+            get => this.ptrRefType ??= new(this, this.CvType, this.SuperType, IndirectType.Pointer);
+            private init => this.ptrRefType = value;
         }
 
         protected override DecoratedName GenerateName()
@@ -40,12 +38,6 @@ namespace MangledMaker.Core.Elements
             this.PtrRefType.CvType = this.CvType;
             this.PtrRefType.SuperType = this.SuperType;
             return this.PtrRefType.Name;
-        }
-
-        private unsafe void Parse(ref char* pSource)
-        {
-            this.PtrRefType = new PtrRefType(this, ref pSource, this.CvType, this.SuperType,
-                                             IndirectType.Pointer);
         }
 
         protected override DecoratedName GenerateCode()

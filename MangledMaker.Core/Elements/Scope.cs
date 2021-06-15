@@ -15,31 +15,37 @@ namespace MangledMaker.Core.Elements
             LexicalFrame
         }
 
-        private FullName fullName;
-        private LexicalFrame lexicalFrame;
+        private FullName? fullName;
+        private FullName FullNameSafe => this.fullName ??= new(this);
+        private LexicalFrame? lexicalFrame;
+        private LexicalFrame LexicalFrameSafe => this.lexicalFrame ??= new(this);
 
-        private TerminatedName namespaceName;
-        private OperatorName namespaceOperator;
+        private TerminatedName? namespaceName;
+        private TerminatedName NamespaceNameSafe => this.namespaceName ??= new(this, '@');
+        private OperatorName? namespaceOperator;
 
-        private ZName zName;
+        private OperatorName NamespaceOperatorSafe => this.namespaceOperator ??= new(this, false, true)
+        { Type = OperatorName.OperatorType.Extended, ExtendedType = OperatorName.ExtendedOperatorType.Namespace };
+
+        private ZName? zName;
+        private ZName ZNameSafe => this.zName ??= new(this, true);
 
         public Scope(ComplexElement parent) : base(parent)
         { }
 
         public unsafe Scope(ComplexElement parent, ref char* pSource)
-            : base(parent)
-        {
+            : base(parent) =>
             this.Parse(ref pSource);
-        }
 
         [Setting]
         public ScopeMode Mode { get; set; }
 
+        private Scope? outsideScope;
         [Child]
-        public Scope OutsideScope { get; set; }
+        public Scope OutsideScope { get => this.outsideScope ??= new(this); set => this.outsideScope = value; }
 
         [Child]
-        public ZName ZName
+        public ZName? ZName
         {
             get
             {
@@ -55,49 +61,20 @@ namespace MangledMaker.Core.Elements
         }
 
         [Child]
-        public OperatorName NamespaceOperator
-        {
-            get { return this.Mode == ScopeMode.NamespaceOperator ? this.namespaceOperator : null; }
-        }
+        public OperatorName? NamespaceOperator => this.Mode == ScopeMode.NamespaceOperator ? this.namespaceOperator : null;
 
         [Child]
-        public FullName FullName
-        {
-            get { return this.Mode == ScopeMode.FullName ? this.fullName : null; }
-        }
+        public FullName? FullName => this.Mode == ScopeMode.FullName ? this.fullName : null;
 
         [Child]
-        public TerminatedName NamespaceName
-        {
-            get { return this.Mode == ScopeMode.Namespace ? this.namespaceName : null; }
-        }
+        public TerminatedName? NamespaceName => this.Mode == ScopeMode.Namespace ? this.namespaceName : null;
 
         [Child]
-        public LexicalFrame LexicalFrame
-        {
-            get { return this.Mode == ScopeMode.LexicalFrame ? this.lexicalFrame : null; }
-        }
-
-        protected override void CreateEmptyElements()
-        {
-            if (this.OutsideScope == null) this.OutsideScope = new Scope(this);
-            if (this.zName == null) this.zName = new ZName(this, true);
-            if (this.fullName == null) this.fullName = new FullName(this);
-            if (this.namespaceOperator == null)
-            {
-                this.namespaceOperator = new OperatorName(this, false, true)
-                    {
-                        Type = OperatorName.OperatorType.Extended,
-                        ExtendedType = OperatorName.ExtendedOperatorType.Namespace
-                    };
-            }
-            if (this.namespaceName == null) this.namespaceName = new TerminatedName(this, '@');
-            if (this.lexicalFrame == null) this.lexicalFrame = new LexicalFrame(this);
-        }
+        public LexicalFrame? LexicalFrame => this.Mode == ScopeMode.LexicalFrame ? this.lexicalFrame : null;
 
         protected override DecoratedName GenerateName()
         {
-            var scope = new DecoratedName(this);
+            DecoratedName scope = new (this);
             if (this.UnDecorator.ExplicitTemplateParams && !this.UnDecorator.CanGetTemplateArgumentList)
                 return scope;
 
@@ -106,19 +83,19 @@ namespace MangledMaker.Core.Elements
                 case ScopeMode.None:
                     return scope;
                 case ScopeMode.ZName:
-                    scope.Assign(this.zName.Name);
+                    scope.Assign(this.ZNameSafe.Name);
                     break;
                 case ScopeMode.FullName:
                     scope.Assign('`');
-                    scope += this.fullName.Name;
+                    scope += this.FullNameSafe.Name;
                     scope += '\'';
                     break;
                 case ScopeMode.NamespaceOperator:
-                    scope.Assign(this.namespaceOperator.Name);
+                    scope.Assign(this.NamespaceOperatorSafe.Name);
                     break;
                 case ScopeMode.BracketedName:
                     scope.Assign('[');
-                    scope += this.zName.Name;
+                    scope += this.ZNameSafe.Name;
                     scope += ']';
                     break;
                 case ScopeMode.Namespace:
@@ -127,11 +104,11 @@ namespace MangledMaker.Core.Elements
                     scope.Assign("`anonymous namespace'");
                     break;
                 default:
-                    scope.Assign(this.lexicalFrame.Name);
+                    scope.Assign(this.LexicalFrameSafe.Name);
                     break;
             }
 
-            if (this.OutsideScope.Name.IsEmpty) 
+            if (this.OutsideScope.Name.IsEmpty)
                 return scope;
             scope.Prepend("::");
             scope.Prepend(this.OutsideScope.Name);
@@ -155,14 +132,14 @@ namespace MangledMaker.Core.Elements
                             // and handle like a zname.
                             this.Mode = ScopeMode.ZName;
                             pSource--;
-                            this.zName = new ZName(this, ref pSource, true);
+                            this.zName = new(this, ref pSource, true);
                             break;
                         case '%':
                         case 'A':
                             // It an anonymous namespace, skip the (unreadable) name and instead insert
                             // an appropriate string
                             this.Mode = ScopeMode.Namespace;
-                            this.namespaceName = new TerminatedName(this, ref pSource, '@');
+                            this.namespaceName = new(this, ref pSource, '@');
 
                             if (!this.UnDecorator.ZNameList.IsFull)
                                 this.UnDecorator.ZNameList.Append(this.namespaceName);
@@ -172,7 +149,7 @@ namespace MangledMaker.Core.Elements
                             {
                                 this.Mode = ScopeMode.NamespaceOperator;
                                 pSource++;
-                                this.namespaceOperator = new OperatorName(this, ref pSource, false,
+                                this.namespaceOperator = new(this, ref pSource, false,
                                     true);
 
                                 if (*pSource == '@')
@@ -181,28 +158,28 @@ namespace MangledMaker.Core.Elements
                             else
                             {
                                 this.Mode = ScopeMode.FullName;
-                                this.fullName = new FullName(this, ref pSource);
+                                this.fullName = new(this, ref pSource);
                             }
                             break;
                         case 'I':
                             this.Mode = ScopeMode.BracketedName;
                             pSource++;
-                            this.zName = new ZName(this, ref pSource, true);
+                            this.zName = new(this, ref pSource, true);
                             break;
                         default:
                             this.Mode = ScopeMode.LexicalFrame;
-                            this.lexicalFrame = new LexicalFrame(this, ref pSource); // Skip lexical scope info
+                            this.lexicalFrame = new(this, ref pSource); // Skip lexical scope info
                             break;
                     }
                 else
                 {
                     this.Mode = ScopeMode.ZName;
-                    this.zName = new ZName(this, ref pSource, true);
+                    this.zName = new(this, ref pSource, true);
                 }
             }
 
             if (*pSource != '\0' && *pSource != '@')
-                this.OutsideScope = new Scope(this, ref pSource);
+                this.OutsideScope = new(this, ref pSource);
 
             switch (*pSource)
             {
@@ -219,29 +196,29 @@ namespace MangledMaker.Core.Elements
 
         protected override DecoratedName GenerateCode()
         {
-            var scope = new DecoratedName(this, '?');
+            DecoratedName scope = new(this, '?');
 
             switch (this.Mode)
             {
                 case ScopeMode.None:
-                    return new DecoratedName(this, '@');
+                    return new(this, '@');
                 case ScopeMode.ZName:
-                    scope = new DecoratedName(this, this.zName.Code);
+                    scope = new(this, this.ZNameSafe.Code);
                     break;
                 case ScopeMode.FullName:
-                    scope += this.fullName.Code;
+                    scope += this.FullNameSafe.Code;
                     break;
                 case ScopeMode.NamespaceOperator:
                     scope += '?';
-                    scope += this.namespaceOperator.Code;
+                    scope += this.NamespaceOperatorSafe.Code;
                     break;
                 case ScopeMode.BracketedName:
                     scope += 'I';
-                    scope += this.zName.Code;
+                    scope += this.ZNameSafe.Code;
                     break;
                 case ScopeMode.Namespace:
                     scope += 'A';
-                    scope += this.namespaceName.Code;
+                    scope += this.NamespaceNameSafe.Code;
                     break;
             }
 

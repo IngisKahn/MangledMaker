@@ -10,32 +10,25 @@ namespace MangledMaker.Core.Elements
             : base(parent)
         {
             this.negative = isNegative;
-            this.Dimension = new Dimension(this, 0);
+            this.Dimension = new(this, 0);
         }
 
-        public unsafe SignedDimension(Element parent, ref char* pSource) : base(parent)
-        {
-            this.Parse(ref pSource);
-        }
+        public unsafe SignedDimension(Element parent, ref char* pSource) : base(parent) => this.Parse(ref pSource);
 
         public bool FixedSign { get; set; }
 
         [Setting]
         public bool? Negative
         {
-            get { return this.FixedSign ? (bool?)null : this.negative; }
+            get => this.FixedSign ? null : this.negative;
             set { if (value != null) this.negative = (bool)value; }
         }
 
+        private Dimension? dimension;
         [Child]
-        public Dimension Dimension { get; private set; }
+        public Dimension Dimension { get => this.dimension ??= new(this); private set => this.dimension = value; }
 
-        protected override DecoratedName GenerateName()
-        {
-            if (this.negative)
-                return '-' + new DecoratedName(this, this.Dimension.Name);
-            return this.Dimension.Name;
-        }
+        protected override DecoratedName GenerateName() => this.negative ? '-' + new DecoratedName(this, this.Dimension.Name) : this.Dimension.Name;
 
         private unsafe void Parse(ref char* pSource)
         {
@@ -50,13 +43,13 @@ namespace MangledMaker.Core.Elements
                 }
                 else
                     this.negative = false;
-                this.Dimension = new Dimension(this, ref pSource, false);
+                this.Dimension = new(this, ref pSource, false);
             }
         }
 
         protected override DecoratedName GenerateCode()
         {
-            var result = new DecoratedName(this, this.Dimension.Code);
+            DecoratedName result = new(this, this.Dimension.Code);
             if (this.negative) result.Prepend('?');
             return result;
         }

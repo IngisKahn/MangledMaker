@@ -4,32 +4,15 @@ namespace MangledMaker.Core.Elements
 
     public sealed class LexicalFrame : Element
     {
-        public LexicalFrame(Element parent) : base(parent)
-        {
-            this.FrameIndex = new Dimension(this, 0);
-        }
+        public LexicalFrame(Element parent) : base(parent) => this.FrameIndex = new(this, 0);
 
-        public unsafe LexicalFrame(Element parent, ref char* pSource) : base(parent)
-        {
-            this.Parse(ref pSource);
-        }
+        public unsafe LexicalFrame(Element parent, ref char* pSource) : base(parent) => this.FrameIndex = new(this, ref pSource, false);
 
         [Child]
-        public Dimension FrameIndex { get; private set; }
+        public Dimension FrameIndex { get; }
 
-        protected override DecoratedName GenerateName()
-        {
-            return '`' + new DecoratedName(this, this.FrameIndex.Name) + '\'';
-        }
+        protected override DecoratedName GenerateName() => '`' + new DecoratedName(this, this.FrameIndex.Name) + '\'';
 
-        private unsafe void Parse(ref char* pSource)
-        {
-            this.FrameIndex = new Dimension(this, ref pSource, false);
-        }
-
-        protected override DecoratedName GenerateCode()
-        {
-            return this.FrameIndex.Code;
-        }
+        protected override DecoratedName GenerateCode() => this.FrameIndex.Code;
     }
 }

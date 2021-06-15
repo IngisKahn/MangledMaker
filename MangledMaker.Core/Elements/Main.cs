@@ -8,7 +8,7 @@ namespace MangledMaker.Core.Elements
 
         private bool isTemplate;
 
-        private string name;
+        private string? name;
         private TemplateName templateName;
 
         public Main(UnDecorator unDecorator) : base(unDecorator)
@@ -17,22 +17,13 @@ namespace MangledMaker.Core.Elements
             this.templateName = new TemplateName(this, false);
         }
 
-        public unsafe Main(ref char* pSource, UnDecorator unDecorator) : this(unDecorator)
-        {
-            this.Parse(ref pSource);
-        }
+        public unsafe Main(ref char* pSource, UnDecorator unDecorator) : this(unDecorator) => this.Parse(ref pSource);
 
         [Child]
-        public FullName FullName
-        {
-            get { return this.IsCodeView || !this.isTemplate ? this.fullName : null; }
-        }
+        public FullName? FullName => this.IsCodeView || !this.isTemplate ? this.fullName : null;
 
         [Child]
-        public TemplateName TemplateName
-        {
-            get { return !this.IsCodeView && this.isTemplate ? this.templateName : null; }
-        }
+        public TemplateName? TemplateName => !this.IsCodeView && this.isTemplate ? this.templateName : null;
 
         [Setting]
         public bool IsCodeView { get; set; }
@@ -40,26 +31,21 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public bool? IsTemplate
         {
-            get { return this.IsCodeView ? null : (bool?)this.isTemplate; }
+            get => this.IsCodeView ? null : this.isTemplate;
             set { if (value != null) this.isTemplate = (bool)value; }
         }
 
         protected override DecoratedName GenerateName()
         {
-            DecoratedName result;
-            DecoratedName unDName;
-
             //this.UnDecorator.Reset();
 
-            if (this.IsCodeView)
-                result = "CV: " + new DecoratedName(this, this.fullName.Name);
-            else
-                result = new DecoratedName(this.isTemplate ? this.templateName.Name : this.fullName.Name);
+            DecoratedName result = this.IsCodeView
+                ? "CV: " + new DecoratedName(this, this.fullName.Name)
+                : new(this.isTemplate ? this.templateName.Name : this.fullName.Name);
 
-            if (result.Status == NodeStatus.Invalid || this.UnDecorator.DoNameOnly && this.name.Length != 0)
-                unDName = new DecoratedName(this, this.name);
-            else
-                unDName = result;
+            DecoratedName unDName = result.Status == NodeStatus.Invalid || this.UnDecorator.DoNameOnly && this.name?.Length != 0
+                ? new(this, this.name)
+                : result;
 
             return unDName;
         }
@@ -72,42 +58,42 @@ namespace MangledMaker.Core.Elements
 
             this.name = new string(pSource);
 
-            if (*pSource == '\0')
+            switch (*pSource)
             {
-                this.IsTruncated = true; // do we want this?
-                return;
-            }
-
-            if (*pSource == '?' && pSource[1] == '@')
-            {
-                pSource += 2;
-                this.IsCodeView = true;
-                //templateName = new TemplateName(this, unDecorator);
-                this.fullName = new FullName(this, ref pSource);
-            }
-            else if (*pSource == '?' && pSource[1] == '$')
-            {
-                var pOriginal = pSource;
-                this.templateName = new TemplateName(this, ref pSource, false);
-                if (this.templateName.Name.Status == NodeStatus.Invalid)
-                {
-                    pSource = pOriginal;
+                case '\0':
+                    this.IsTruncated = true; // do we want this?
+                    return;
+                case '?' when pSource[1] == '@':
+                    pSource += 2;
+                    this.IsCodeView = true;
                     //templateName = new TemplateName(this, unDecorator);
-                    this.fullName = new FullName(this, ref pSource);
+                    this.fullName = new(this, ref pSource);
+                    break;
+                case '?' when pSource[1] == '$':
+                {
+                    var pOriginal = pSource;
+                    this.templateName = new(this, ref pSource, false);
+                    if (this.templateName.Name.Status == NodeStatus.Invalid)
+                    {
+                        pSource = pOriginal;
+                        //templateName = new TemplateName(this, unDecorator);
+                        this.fullName = new(this, ref pSource);
+                    }
+                    else
+                        this.isTemplate = true;
+
+                    break;
                 }
-                else
-                    this.isTemplate = true;
-            }
-            else
-            {
-                //templateName = new TemplateName(this, unDecorator);
-                this.fullName = new FullName(this, ref pSource);
+                default:
+                    //templateName = new TemplateName(this, unDecorator);
+                    this.fullName = new(this, ref pSource);
+                    break;
             }
         }
 
         protected override DecoratedName GenerateCode()
         {
-            var result = new DecoratedName(this);
+            DecoratedName result = new(this);
 
             if (this.IsCodeView)
                 result += "?@";

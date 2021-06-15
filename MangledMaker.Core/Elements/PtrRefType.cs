@@ -4,11 +4,14 @@ namespace MangledMaker.Core.Elements
 
     public sealed class PtrRefType : ComplexElement
     {
-        private DataIndirectType dataIndirectType;
-        private FunctionIndirectType functionIndirectType;
+        private DataIndirectType? dataIndirectType;
+        private DataIndirectType DataIndirectTypeSafe => this.dataIndirectType ??= new(this, this.SuperType, this.PrType, this.CvType, false);
+        private FunctionIndirectType? functionIndirectType;
+        private FunctionIndirectType FunctionIndirectTypeSafe => this.functionIndirectType ??= new(this, new());
         private bool isFunctionPointer;
         private bool isMissing;
-        private PtrRefDataType ptrRefDataType;
+        private PtrRefDataType? ptrRefDataType;
+        private PtrRefDataType PtrRefDataTypeSafe => this.ptrRefDataType ??= new(this, new(), this.PrType == IndirectType.Pointer);
 
         public PtrRefType(ComplexElement parent, DecoratedName cvType,
                           DecoratedName superType, IndirectType prType)
@@ -21,10 +24,8 @@ namespace MangledMaker.Core.Elements
 
         public unsafe PtrRefType(ComplexElement parent, ref char* pSource,
                                  DecoratedName cvType, DecoratedName superType, IndirectType prType)
-            : this(parent, cvType, superType, prType)
-        {
+            : this(parent, cvType, superType, prType) =>
             this.Parse(ref pSource);
-        }
 
         [Input]
         public DecoratedName SuperType { get; set; }
@@ -38,44 +39,21 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public bool IsFunctionPointer
         {
-            get { return this.isFunctionPointer; }
+            get => this.isFunctionPointer;
             set
             {
                 this.isFunctionPointer = value;
                 this.isMissing = false;
             }
         }
+        [Child]
+        public FunctionIndirectType? FunctionIndirectType => this.isFunctionPointer ? this.functionIndirectType : null;
 
         [Child]
-        public FunctionIndirectType FunctionIndirectType
-        {
-            get { return this.isFunctionPointer ? this.functionIndirectType : null; }
-        }
+        public DataIndirectType? DataIndirectType => this.isFunctionPointer ? null : this.dataIndirectType;
 
         [Child]
-        public DataIndirectType DataIndirectType
-        {
-            get { return this.isFunctionPointer ? null : this.dataIndirectType; }
-        }
-
-        [Child]
-        public PtrRefDataType PtrRefDataType
-        {
-            get { return this.isFunctionPointer ? null : this.ptrRefDataType; }
-        }
-
-        protected override void CreateEmptyElements()
-        {
-            if (this.functionIndirectType == null)
-                this.functionIndirectType =
-                    new FunctionIndirectType(this, new DecoratedName());
-            if (this.dataIndirectType == null)
-                this.dataIndirectType =
-                    new DataIndirectType(this, this.SuperType, this.PrType, this.CvType, false);
-            if (this.ptrRefDataType == null)
-                this.ptrRefDataType =
-                    new PtrRefDataType(this, new DecoratedName(), this.PrType == IndirectType.Pointer);
-        }
+        public PtrRefDataType? PtrRefDataType => this.isFunctionPointer ? null : this.ptrRefDataType;
 
         protected override DecoratedName GenerateName()
         {
@@ -83,23 +61,23 @@ namespace MangledMaker.Core.Elements
             {
                 if (this.isFunctionPointer)
                 {
-                    var modifiers = new DecoratedName(this, IndirectionToChar(this.PrType));
+                    DecoratedName modifiers = new(this, Element.IndirectionToChar(this.PrType));
                     if (!this.CvType.IsEmpty && (this.SuperType.IsEmpty || !this.SuperType.IsPointerReference))
                         modifiers.Append(this.CvType);
                     if (!this.SuperType.IsEmpty)
                         modifiers.Append(this.SuperType);
-                    this.functionIndirectType.SuperType = modifiers;
-                    return this.functionIndirectType.Name;
+                    this.FunctionIndirectTypeSafe.SuperType = modifiers;
+                    return this.FunctionIndirectTypeSafe.Name;
                 }
-                this.dataIndirectType.SuperType = this.SuperType;
-                this.dataIndirectType.PrType = this.PrType;
-                this.dataIndirectType.CvType = this.CvType;
-                this.ptrRefDataType.SuperType = this.dataIndirectType.Name;
-                this.ptrRefDataType.IsPtr = this.PrType == IndirectType.Pointer;
-                return this.ptrRefDataType.Name;
+                this.DataIndirectTypeSafe.SuperType = this.SuperType;
+                this.DataIndirectTypeSafe.PrType = this.PrType;
+                this.DataIndirectTypeSafe.CvType = this.CvType;
+                this.PtrRefDataTypeSafe.SuperType = this.DataIndirectTypeSafe.Name;
+                this.PtrRefDataTypeSafe.IsPtr = this.PrType == IndirectType.Pointer;
+                return this.PtrRefDataTypeSafe.Name;
             }
-            var missing = new DecoratedName(this, NodeStatus.Truncated);
-            missing.Append(IndirectionToChar(this.PrType));
+            DecoratedName missing = new(this, NodeStatus.Truncated);
+            missing.Append(Element.IndirectionToChar(this.PrType));
             if (!this.CvType.IsEmpty)
                 missing.Append(this.CvType);
             if (this.SuperType.IsEmpty) 
@@ -122,41 +100,41 @@ namespace MangledMaker.Core.Elements
             if (*pSource >= '6' && *pSource <= '9' || *pSource == '_')
             {
                 this.isFunctionPointer = true;
-                var modifiers = new DecoratedName(IndirectionToChar(this.PrType));
+                DecoratedName modifiers = new(Element.IndirectionToChar(this.PrType));
                 if (!this.CvType.IsEmpty && (this.SuperType.IsEmpty || !this.SuperType.IsPointerReference))
                     modifiers.Append(this.CvType);
                 if (!this.SuperType.IsEmpty)
                     modifiers.Append(this.SuperType);
-                this.functionIndirectType = new FunctionIndirectType(this, ref pSource, modifiers);
+                this.functionIndirectType = new(this, ref pSource, modifiers);
                 return;
             }
             this.isFunctionPointer = false;
-            this.dataIndirectType = new DataIndirectType(this, ref pSource, this.SuperType,
+            this.dataIndirectType = new(this, ref pSource, this.SuperType,
                 this.PrType, this.CvType, false);
-            this.ptrRefDataType = new PtrRefDataType(this, ref pSource, this.dataIndirectType.Name,
+            this.ptrRefDataType = new(this, ref pSource, this.dataIndirectType.Name,
                 this.PrType == IndirectType.Pointer);
         }
 
         protected override DecoratedName GenerateCode()
         {
             if (this.isMissing) 
-                return new DecoratedName(this, '\0');
+                return new(this, '\0');
             if (this.isFunctionPointer)
             {
-                var modifiers = new DecoratedName(this, IndirectionToChar(this.PrType));
+                DecoratedName modifiers = new(this, Element.IndirectionToChar(this.PrType));
                 if (!this.CvType.IsEmpty && (this.SuperType.IsEmpty || !this.SuperType.IsPointerReference))
                     modifiers.Append(this.CvType);
                 if (!this.SuperType.IsEmpty)
                     modifiers.Append(this.SuperType);
-                this.functionIndirectType.SuperType = modifiers;
-                return this.functionIndirectType.Code;
+                this.FunctionIndirectTypeSafe.SuperType = modifiers;
+                return this.FunctionIndirectTypeSafe.Code;
             }
-            this.dataIndirectType.SuperType = this.SuperType;
-            this.dataIndirectType.PrType = this.PrType;
-            this.dataIndirectType.CvType = this.CvType;
-            this.ptrRefDataType.SuperType = this.dataIndirectType.Name;
-            this.ptrRefDataType.IsPtr = this.PrType == IndirectType.Pointer;
-            return this.dataIndirectType.Code + this.ptrRefDataType.Code;
+            this.DataIndirectTypeSafe.SuperType = this.SuperType;
+            this.DataIndirectTypeSafe.PrType = this.PrType;
+            this.DataIndirectTypeSafe.CvType = this.CvType;
+            this.PtrRefDataTypeSafe.SuperType = this.DataIndirectTypeSafe.Name;
+            this.PtrRefDataTypeSafe.IsPtr = this.PrType == IndirectType.Pointer;
+            return this.DataIndirectTypeSafe.Code + this.PtrRefDataTypeSafe.Code;
         }
     }
 }

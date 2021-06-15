@@ -120,13 +120,11 @@ namespace MangledMaker.Core.Elements
             LocalStaticThreadGuard,
         }
 
-        private static string GetString(Extended2OperatorType type)
-        {
-            return nameTable[type - Extended2OperatorType.ManagedVectorConstructorIterator + 
-                (ExtendedOperatorType.PlacementDeleteVectorClosure - ExtendedOperatorType.TypeOf + 1)
-                + (ExtendedOperatorType.VirtualCall - ExtendedOperatorType.DivideAssign + 2
-                + (OperatorType.MinusAssign - OperatorType.Index + 1) + (OperatorType.NotEqual - OperatorType.New + 1))];
-        }
+        private static string GetString(Extended2OperatorType type) =>
+            OperatorName.nameTable[type - Extended2OperatorType.ManagedVectorConstructorIterator + 
+                                   (ExtendedOperatorType.PlacementDeleteVectorClosure - ExtendedOperatorType.TypeOf + 1)
+                                   + (ExtendedOperatorType.VirtualCall - ExtendedOperatorType.DivideAssign + 2
+                                       + (OperatorType.MinusAssign - OperatorType.Index + 1) + (OperatorType.NotEqual - OperatorType.New + 1))];
 
         public enum ExtendedOperatorType
         {
@@ -174,15 +172,17 @@ namespace MangledMaker.Core.Elements
         private static string GetString(ExtendedOperatorType type)
         {
             const int offset =
-                (OperatorType.MinusAssign - OperatorType.Index + 1) + (OperatorType.NotEqual - OperatorType.New + 1);
-            if (type < ExtendedOperatorType.Namespace)
-                return nameTable[type - ExtendedOperatorType.DivideAssign + offset];
-            if (type == ExtendedOperatorType.Namespace)
-                return nameTable[ExtendedOperatorType.VirtualCall - ExtendedOperatorType.DivideAssign + 1 + offset];
-            return
-                nameTable[
-                          type - ExtendedOperatorType.TypeOf +
-                          (ExtendedOperatorType.VirtualCall - ExtendedOperatorType.DivideAssign + 2) + offset];
+                OperatorType.MinusAssign - OperatorType.Index + 1 + (OperatorType.NotEqual - OperatorType.New) + 1;
+            return type switch
+            {
+                < ExtendedOperatorType.Namespace => OperatorName.nameTable[
+                    type - ExtendedOperatorType.DivideAssign + offset],
+                ExtendedOperatorType.Namespace => OperatorName.nameTable[
+                    ExtendedOperatorType.VirtualCall - ExtendedOperatorType.DivideAssign + 1 + offset],
+                _ => OperatorName.nameTable[
+                    type - ExtendedOperatorType.TypeOf +
+                    (ExtendedOperatorType.VirtualCall - ExtendedOperatorType.DivideAssign) + 2 + offset]
+            };
         }
 
         public enum OperatorType : ushort
@@ -226,10 +226,8 @@ namespace MangledMaker.Core.Elements
             Extended = '_'
         }
 
-        private static string GetString(OperatorType type)
-        {
-            return nameTable[type < OperatorType.Index ? type - OperatorType.New : type - OperatorType.Index + (OperatorType.NotEqual - OperatorType.New + 1)];
-        }
+        private static string GetString(OperatorType type) => 
+            OperatorName.nameTable[type < OperatorType.Index ? type - OperatorType.New : type - OperatorType.Index + (OperatorType.NotEqual - OperatorType.New) + 1];
 
         public enum RttiOperatorType
         {
@@ -240,29 +238,40 @@ namespace MangledMaker.Core.Elements
             CompleteObjectLocator
         }
 
-        private static string GetString(RttiOperatorType type)
-        {
-            return rttiTable[type - RttiOperatorType.TypeDescriptor];
-        }
+        private static string GetString(RttiOperatorType type) => OperatorName.rttiTable[type - RttiOperatorType.TypeDescriptor];
 
-        private Dimension attributes;
-        private ZName className;
-        private SignedDimension displacementInsideVirtualBaseTable;
-        private FullName dynamicOwnerName;
-        private SymbolName dynamicOwnerSymbol;
+        private Dimension? attributes;
+        private Dimension AttributesSafe => this.attributes ??= new(this);
+        private ZName? className;
+        private ZName ClassNameSafe => this.className ??= new(this, false);
+        private SignedDimension? displacementInsideVirtualBaseTable;
+
+        private SignedDimension DisplacementInsideVirtualBaseTableSafe =>
+            this.displacementInsideVirtualBaseTable ??= new(this, false);
+        private FullName? dynamicOwnerName;
+        private FullName DynamicOwnerNameSafe => this.dynamicOwnerName ??= new(this);
+        private SymbolName? dynamicOwnerSymbol;
+        private SymbolName DynamicOwnerSymbolSafe => this.dynamicOwnerSymbol ??= new(this);
         private Extended2OperatorType extended2Type;
         private ExtendedOperatorType extendedType;
         private bool isDynamicFullName;
-        private SignedDimension memberDisplacement;
-        private StringEncoding namespaceName;
-        private DataType rttiDataType;
+        private SignedDimension? memberDisplacement;
+        private SignedDimension MemberDisplacementSafe => this.memberDisplacement ??= new(this, false);
+        private StringEncoding? namespaceName;
+        private StringEncoding NamespaceNameSafe => this.namespaceName ??= new(this, OperatorName.GetString(ExtendedOperatorType.Namespace), "");
+        private DataType? rttiDataType;
+        private DataType RttiDataTypeSafe => this.rttiDataType ??= new(this, null);
         private RttiOperatorType rttiType;
-        private StringEncoding stringReference;
-        private ArgumentList templateArguments;
+        private StringEncoding? stringReference;
+        private StringEncoding StringReferenceSafe => this.stringReference ??= new(this, OperatorName.GetString(ExtendedOperatorType.String), "");
+        private ArgumentList? templateArguments;
+        private ArgumentList TemplateArgumentsSafe => this.templateArguments ??= new(this);
 
         private OperatorType type;
-        private OperatorName udtOperator;
-        private SignedDimension virtualBaseTableDisplacement;
+        private OperatorName? udtOperator;
+        private OperatorName UdtOperatorSafe => this.udtOperator ??= new(this, false);
+        private SignedDimension? virtualBaseTableDisplacement;
+        private SignedDimension VirtualBaseTableDisplacementSafe => this.virtualBaseTableDisplacement ??= new(this, false);
 
         public OperatorName(ComplexElement parent, bool isTemplate, bool isLocked = false)
             : base(parent)
@@ -273,17 +282,13 @@ namespace MangledMaker.Core.Elements
 
         public unsafe OperatorName(ComplexElement parent, ref char* pSource,
                                    bool isTemplate)
-            : this(parent, isTemplate)
-        {
+            : this(parent, isTemplate) =>
             this.Parse(ref pSource);
-        }
 
         public unsafe OperatorName(ComplexElement parent, ref char* pSource,
                                    bool isTemplate, bool isLocked)
-            : this(parent, isTemplate, isLocked)
-        {
+            : this(parent, isTemplate, isLocked) =>
             this.Parse(ref pSource);
-        }
 
         [Input]
         public bool IsLocked { get; private set; }
@@ -294,19 +299,17 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public OperatorType? Type
         {
-            get { return this.IsLocked ? (OperatorType?)null : this.type; }
+            get => this.IsLocked ? null : this.type;
             set { if (value != null) this.type = (OperatorType)value; }
         }
 
         [Setting]
         public ExtendedOperatorType? ExtendedType
         {
-            get
-            {
-                return this.IsLocked || this.type != OperatorType.Extended
-                           ? (ExtendedOperatorType?)null
-                           : this.extendedType;
-            }
+            get =>
+                this.IsLocked || this.type != OperatorType.Extended
+                    ? null
+                    : this.extendedType;
             set { if (value != null) this.extendedType = (ExtendedOperatorType)value; }
         }
 
@@ -314,41 +317,34 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public Extended2OperatorType? Extended2Type
         {
-            get
-            {
-                return this.IsLocked || this.type != OperatorType.Extended ||
-                       this.extendedType != ExtendedOperatorType.Extended2
-                           ? (Extended2OperatorType?)null
-                           : this.extended2Type;
-            }
+            get =>
+                this.IsLocked || this.type != OperatorType.Extended ||
+                this.extendedType != ExtendedOperatorType.Extended2
+                    ? null
+                    : this.extended2Type;
             set { if (value != null) this.extended2Type = (Extended2OperatorType)value; }
         }
 
         [Setting]
         public RttiOperatorType? RttiType
         {
-            get
-            {
-                return this.IsLocked || this.type != OperatorType.Extended ||
-                       this.extendedType != ExtendedOperatorType.Rtti
-                           ? (RttiOperatorType?)null
-                           : this.rttiType;
-            }
+            get =>
+                this.IsLocked || this.type != OperatorType.Extended ||
+                this.extendedType != ExtendedOperatorType.Rtti
+                    ? null
+                    : this.rttiType;
             set { if (value != null) this.rttiType = (RttiOperatorType)value; }
         }
 
         [Setting]
         public bool? IsDynamicFullName
         {
-            get
-            {
-                return this.type == OperatorType.Extended
-                       && this.extendedType == ExtendedOperatorType.Extended2
-                       && (this.extended2Type == Extended2OperatorType.DynamicInitializer
-                           || this.extended2Type == Extended2OperatorType.DynamicAtExitDestructor)
-                           ? this.isDynamicFullName
-                           : (bool?)null;
-            }
+            get =>
+                this.type == OperatorType.Extended
+                && this.extendedType == ExtendedOperatorType.Extended2
+                && this.extended2Type is Extended2OperatorType.DynamicInitializer or Extended2OperatorType.DynamicAtExitDestructor
+                    ? this.isDynamicFullName
+                    : (bool?)null;
             set { if (value != null) this.isDynamicFullName = (bool)value; }
         }
 
@@ -356,190 +352,102 @@ namespace MangledMaker.Core.Elements
         public bool ReadTemplateArguments { get; private set; }
 
         [Child]
-        public ArgumentList TemplateArguments
-        {
-            get
-            {
-                return (this.type == OperatorType.Ctor || this.type == OperatorType.Dtor)
-                       && this.IsTemplate
-                           ? this.templateArguments
-                           : null;
-            }
-        }
+        public ArgumentList? TemplateArguments =>
+            (this.type == OperatorType.Ctor || this.type == OperatorType.Dtor)
+            && this.IsTemplate
+                ? this.templateArguments
+                : null;
 
         [Child]
-        public ZName ClassName
-        {
-            get
-            {
-                return (this.type == OperatorType.Ctor || this.type == OperatorType.Dtor)
-                           ? this.className
-                           : null;
-            }
-        }
+        public ZName? ClassName =>
+            (this.type == OperatorType.Ctor || this.type == OperatorType.Dtor)
+                ? this.className
+                : null;
 
         [Child]
-        public StringEncoding NamespaceName
-        {
-            get
-            {
-                return this.type == OperatorType.Extended && this.extendedType == ExtendedOperatorType.Namespace
-                           ? this.namespaceName
-                           : null;
-            }
-        }
+        public StringEncoding? NamespaceName =>
+            this.type == OperatorType.Extended && this.extendedType == ExtendedOperatorType.Namespace
+                ? this.namespaceName
+                : null;
 
 
         [Child]
-        public StringEncoding StringReference
-        {
-            get
-            {
-                return this.type == OperatorType.Extended && this.extendedType == ExtendedOperatorType.String
-                           ? this.stringReference
-                           : null;
-            }
-        }
+        public StringEncoding? StringReference =>
+            this.type == OperatorType.Extended && this.extendedType == ExtendedOperatorType.String
+                ? this.stringReference
+                : null;
 
 
         [Child]
-        public OperatorName UdtOperator
-        {
-            get
-            {
-                return this.type == OperatorType.Extended && this.extendedType == ExtendedOperatorType.UdtReturning
-                           ? this.udtOperator
-                           : null;
-            }
-        }
+        public OperatorName? UdtOperator =>
+            this.type == OperatorType.Extended && this.extendedType == ExtendedOperatorType.UdtReturning
+                ? this.udtOperator
+                : null;
 
         [Child]
-        public DataType RttiDataType
-        {
-            get
-            {
-                return this.type == OperatorType.Extended
-                       && this.extendedType == ExtendedOperatorType.Rtti
-                       && this.rttiType == RttiOperatorType.TypeDescriptor
-                           ? this.rttiDataType
-                           : null;
-            }
-        }
+        public DataType? RttiDataType =>
+            this.type == OperatorType.Extended
+            && this.extendedType == ExtendedOperatorType.Rtti
+            && this.rttiType == RttiOperatorType.TypeDescriptor
+                ? this.rttiDataType
+                : null;
 
         [Child]
-        public SignedDimension MemberDisplacement
-        {
-            get
-            {
-                return this.type == OperatorType.Extended
-                       && this.extendedType == ExtendedOperatorType.Rtti
-                       && this.rttiType == RttiOperatorType.BaseClassDescriptor
-                           ? this.memberDisplacement
-                           : null;
-            }
-        }
+        public SignedDimension? MemberDisplacement =>
+            this.type == OperatorType.Extended
+            && this.extendedType == ExtendedOperatorType.Rtti
+            && this.rttiType == RttiOperatorType.BaseClassDescriptor
+                ? this.memberDisplacement
+                : null;
 
         [Child]
-        public SignedDimension VirtualBaseTableDisplacement
-        {
-            get
-            {
-                return this.type == OperatorType.Extended
-                       && this.extendedType == ExtendedOperatorType.Rtti
-                       && this.rttiType == RttiOperatorType.BaseClassDescriptor
-                           ? this.virtualBaseTableDisplacement
-                           : null;
-            }
-        }
+        public SignedDimension? VirtualBaseTableDisplacement =>
+            this.type == OperatorType.Extended
+            && this.extendedType == ExtendedOperatorType.Rtti
+            && this.rttiType == RttiOperatorType.BaseClassDescriptor
+                ? this.virtualBaseTableDisplacement
+                : null;
 
         [Child]
-        public SignedDimension DisplacementInsideVirtualBaseTable
-        {
-            get
-            {
-                return this.type == OperatorType.Extended
-                       && this.extendedType == ExtendedOperatorType.Rtti
-                       && this.rttiType == RttiOperatorType.BaseClassDescriptor
-                           ? this.displacementInsideVirtualBaseTable
-                           : null;
-            }
-        }
+        public SignedDimension? DisplacementInsideVirtualBaseTable =>
+            this.type == OperatorType.Extended
+            && this.extendedType == ExtendedOperatorType.Rtti
+            && this.rttiType == RttiOperatorType.BaseClassDescriptor
+                ? this.displacementInsideVirtualBaseTable
+                : null;
 
         [Child]
-        public Dimension Attributes
-        {
-            get
-            {
-                return this.type == OperatorType.Extended
-                       && this.extendedType == ExtendedOperatorType.Rtti
-                       && this.rttiType == RttiOperatorType.BaseClassDescriptor
-                           ? this.attributes
-                           : null;
-            }
-        }
+        public Dimension? Attributes =>
+            this.type == OperatorType.Extended
+            && this.extendedType == ExtendedOperatorType.Rtti
+            && this.rttiType == RttiOperatorType.BaseClassDescriptor
+                ? this.attributes
+                : null;
 
         [Child]
-        public FullName DynamicOwnerName
-        {
-            get
-            {
-                return this.type == OperatorType.Extended
-                       && this.extendedType == ExtendedOperatorType.Extended2
-                       && (this.extended2Type == Extended2OperatorType.DynamicInitializer
-                           || this.extended2Type == Extended2OperatorType.DynamicAtExitDestructor)
-                       && this.isDynamicFullName
-                           ? this.dynamicOwnerName
-                           : null;
-            }
-        }
+        public FullName? DynamicOwnerName =>
+            this.type == OperatorType.Extended
+            && this.extendedType == ExtendedOperatorType.Extended2
+            && (this.extended2Type is Extended2OperatorType.DynamicInitializer or Extended2OperatorType.DynamicAtExitDestructor)
+            && this.isDynamicFullName
+                ? this.dynamicOwnerName
+                : null;
 
         [Child]
-        public SymbolName DynamicOwnerSymbol
-        {
-            get
-            {
-                return this.type == OperatorType.Extended
-                       && this.extendedType == ExtendedOperatorType.Extended2
-                       && (this.extended2Type == Extended2OperatorType.DynamicInitializer
-                           || this.extended2Type == Extended2OperatorType.DynamicAtExitDestructor)
-                       && !this.isDynamicFullName
-                           ? this.dynamicOwnerSymbol
-                           : null;
-            }
-        }
+        public SymbolName? DynamicOwnerSymbol =>
+            this.type == OperatorType.Extended
+            && this.extendedType == ExtendedOperatorType.Extended2
+            && (this.extended2Type is Extended2OperatorType.DynamicInitializer or Extended2OperatorType.DynamicAtExitDestructor)
+            && !this.isDynamicFullName
+                ? this.dynamicOwnerSymbol
+                : null;
 
-        protected override void CreateEmptyElements()
-        {
-            if (this.templateArguments == null)
-                this.templateArguments = new ArgumentList(this);
-            if (this.className == null)
-                this.className = new ZName(this, false);
-            if (this.namespaceName == null)
-                this.namespaceName = new StringEncoding(this, GetString(ExtendedOperatorType.Namespace), "");
-            if (this.stringReference == null)
-                this.stringReference = new StringEncoding(this, GetString(ExtendedOperatorType.String), "");
-            if (this.udtOperator == null)
-                this.udtOperator = new OperatorName(this, false);
-            if (this.rttiDataType == null)
-                this.rttiDataType = new DataType(this, null);
-            if (this.memberDisplacement == null)
-                this.memberDisplacement = new SignedDimension(this, false);
-            if (this.virtualBaseTableDisplacement == null)
-                this.virtualBaseTableDisplacement = new SignedDimension(this, false);
-            if (this.displacementInsideVirtualBaseTable == null)
-                this.displacementInsideVirtualBaseTable = new SignedDimension(this, false);
-            if (this.attributes == null)
-                this.attributes = new Dimension(this);
-            if (this.dynamicOwnerName == null)
-                this.dynamicOwnerName = new FullName(this);
-            if (this.dynamicOwnerSymbol == null)
-                this.dynamicOwnerSymbol = new SymbolName(this);
-        }
+
 
         protected override DecoratedName GenerateName()
         {
-            var operatorName = new DecoratedName(this);
-            var tempName = new DecoratedName(this);
+            DecoratedName operatorName = new(this);
+            DecoratedName tempName = new(this);
             var udcSeen = false;
             this.ReadTemplateArguments = false;
 
@@ -547,19 +455,19 @@ namespace MangledMaker.Core.Elements
             {
                 case OperatorType.Ctor:
                 case OperatorType.Dtor:
-                    var list = new DecoratedName(this);
+                    DecoratedName list = new(this);
                     if (this.IsTemplate)
                     {
                         list.Assign('<');
-                        list.Append(this.templateArguments.Name);
+                        list.Append(this.TemplateArgumentsSafe.Name);
                         if (list.LastCharacter == '>')
                             list.Append(' ');
                         list.Append('>');
                         this.ReadTemplateArguments = true;
-                        if (this.className.Name.IsEmpty)
+                        if (this.ClassNameSafe.Name.IsEmpty)
                             return list;
                     }
-                    operatorName.Assign(this.className.Name);
+                    operatorName.Assign(this.ClassNameSafe.Name);
                     if (this.type == OperatorType.Dtor)
                         operatorName.Prepend('~');
                     if (!list.IsEmpty)
@@ -601,7 +509,7 @@ namespace MangledMaker.Core.Elements
                 case OperatorType.MultiplyAssign:
                 case OperatorType.AddAssign:
                 case OperatorType.MinusAssign:
-                    operatorName.Assign(GetString(this.type));
+                    operatorName.Assign(OperatorName.GetString(this.type));
                     break;
                 case OperatorType.Extended:
                     switch (this.extendedType)
@@ -617,15 +525,15 @@ namespace MangledMaker.Core.Elements
                             break;
                         case ExtendedOperatorType.VirtualFunctionTable:
                         case ExtendedOperatorType.VirtualBaseTable:
-                            return new DecoratedName(this, GetString(this.extendedType));
+                            return new(this, OperatorName.GetString(this.extendedType));
                         case ExtendedOperatorType.VirtualCall:
-                            return new DecoratedName(this, GetString(this.extendedType)) { IsVirtualCallThunk = true };
+                            return new(this, OperatorName.GetString(this.extendedType)) { IsVirtualCallThunk = true };
                         case ExtendedOperatorType.Namespace:
-                            var @namespace = this.namespaceName.Name;
+                            var @namespace = this.NamespaceNameSafe.Name;
                             @namespace.IsNoTypeEncoding = true;
                             return @namespace;
                         case ExtendedOperatorType.String:
-                            var text = this.stringReference.Name;
+                            var text = this.StringReferenceSafe.Name;
                             text.IsNoTypeEncoding = true;
                             return text;
                         case ExtendedOperatorType.TypeOf:
@@ -646,12 +554,12 @@ namespace MangledMaker.Core.Elements
                         case ExtendedOperatorType.LocalVirtualFunctionTableConstructorClosure:
                         case ExtendedOperatorType.PlacementDeleteClosure:
                         case ExtendedOperatorType.PlacementDeleteVectorClosure:
-                            return new DecoratedName(this, GetString(this.extendedType));
+                            return new(this, OperatorName.GetString(this.extendedType));
                         case ExtendedOperatorType.UdtReturning:
                             operatorName.Assign(GetString(this.extendedType));
-                            tempName.Assign(this.udtOperator.Name);
+                            tempName.Assign(this.UdtOperatorSafe.Name);
                             if (tempName.IsUdtThunk)
-                                return new DecoratedName(this, NodeStatus.Invalid);
+                                return new(this, NodeStatus.Invalid);
                             return operatorName + tempName;
                         case ExtendedOperatorType.ErrorHandler: //yup, do nothing
                             break;
@@ -662,22 +570,22 @@ namespace MangledMaker.Core.Elements
                                 case RttiOperatorType.TypeDescriptor:
                                     tempName.Assign(GetString(this.rttiType));
                                     operatorName.Prepend(' ');
-                                    return this.rttiDataType.Name + operatorName + tempName;
+                                    return this.RttiDataTypeSafe.Name + operatorName + tempName;
                                 case RttiOperatorType.BaseClassDescriptor:
                                     tempName.Assign(GetString(this.rttiType));
                                     var descriptor = operatorName + tempName;
-                                    descriptor.Append(this.memberDisplacement.Name);
+                                    descriptor.Append(this.MemberDisplacementSafe.Name);
                                     descriptor.Append(',');
-                                    descriptor.Append(this.virtualBaseTableDisplacement.Name + ',');
+                                    descriptor.Append(this.VirtualBaseTableDisplacementSafe.Name + ',');
                                     descriptor.Append(',');
-                                    descriptor.Append(this.displacementInsideVirtualBaseTable.Name + ',');
+                                    descriptor.Append(this.DisplacementInsideVirtualBaseTableSafe.Name + ',');
                                     descriptor.Append(',');
-                                    descriptor.Append(this.attributes.Name);
+                                    descriptor.Append(this.AttributesSafe.Name);
                                     return descriptor + ")'";
                                 case RttiOperatorType.BaseClassArray:
                                 case RttiOperatorType.ClassHierarchyDescriptor:
                                 case RttiOperatorType.CompleteObjectLocator:
-                                    tempName.Assign(GetString(this.rttiType));
+                                    tempName.Assign(OperatorName.GetString(this.rttiType));
                                     return operatorName + tempName;
                             }
                             break;
@@ -696,14 +604,14 @@ namespace MangledMaker.Core.Elements
                                 case Extended2OperatorType.VectorVirtualBaseCopyConstructorIterator:
                                 case Extended2OperatorType.ManagedVectorCopyConstructorIterator:
                                 case Extended2OperatorType.LocalStaticThreadGuard:
-                                    return new DecoratedName(this, GetString(this.extended2Type));
+                                    return new(this, OperatorName.GetString(this.extended2Type));
                                 case Extended2OperatorType.DynamicInitializer:
                                 case Extended2OperatorType.DynamicAtExitDestructor:
                                     var dynamic =
-                                        new DecoratedName(this, GetString(this.extended2Type));
+                                        new DecoratedName(this, OperatorName.GetString(this.extended2Type));
                                     dynamic.Append(this.isDynamicFullName
-                                                       ? this.dynamicOwnerName.Name
-                                                       : this.dynamicOwnerSymbol.Name);
+                                                       ? this.DynamicOwnerNameSafe.Name
+                                                       : this.DynamicOwnerSymbolSafe.Name);
                                     dynamic.Append("''");
                                     return dynamic;
                             }
@@ -739,7 +647,7 @@ namespace MangledMaker.Core.Elements
                     var savedSource = pSource;
                     if (this.IsTemplate)
                     {
-                        this.templateArguments = new ArgumentList(this, ref pSource);
+                        this.templateArguments = new(this, ref pSource);
                         this.ReadTemplateArguments = true;
                         if (*pSource == '\0')
                         {
@@ -748,7 +656,7 @@ namespace MangledMaker.Core.Elements
                         }
                         pSource++;
                     }
-                    this.className = new ZName(this, ref pSource, false);
+                    this.className = new(this, ref pSource, false);
                     pSource = savedSource;
                     break;
                 case OperatorType.Extended:
@@ -767,7 +675,7 @@ namespace MangledMaker.Core.Elements
                                     this.IsTruncated = true;
                                     break;
                                 case '0':
-                                    this.namespaceName = new StringEncoding(this, ref pSource, "`anonymous namespace'");
+                                    this.namespaceName = new(this, ref pSource, "`anonymous namespace'");
                                     break;
                                 default:
                                     this.IsInvalid = true;
@@ -775,10 +683,10 @@ namespace MangledMaker.Core.Elements
                             }
                             break;
                         case ExtendedOperatorType.String:
-                            this.stringReference = new StringEncoding(this, ref pSource, "`string'");
+                            this.stringReference = new(this, ref pSource, "`string'");
                             break;
                         case ExtendedOperatorType.UdtReturning:
-                            this.udtOperator = new OperatorName(this, ref pSource, false);
+                            this.udtOperator = new(this, ref pSource, false);
                             if (this.udtOperator.Name.IsUdtThunk)
                                 this.IsInvalid = true;
                             break;
@@ -787,13 +695,13 @@ namespace MangledMaker.Core.Elements
                             switch (this.rttiType)
                             {
                                 case RttiOperatorType.TypeDescriptor:
-                                    this.rttiDataType = new DataType(this, ref pSource, null);
+                                    this.rttiDataType = new(this, ref pSource, null);
                                     break;
                                 case RttiOperatorType.BaseClassDescriptor:
-                                    this.memberDisplacement = new SignedDimension(this, ref pSource);
-                                    this.virtualBaseTableDisplacement = new SignedDimension(this, ref pSource);
-                                    this.displacementInsideVirtualBaseTable = new SignedDimension(this, ref pSource);
-                                    this.attributes = new Dimension(this, ref pSource, true);
+                                    this.memberDisplacement = new(this, ref pSource);
+                                    this.virtualBaseTableDisplacement = new(this, ref pSource);
+                                    this.displacementInsideVirtualBaseTable = new(this, ref pSource);
+                                    this.attributes = new(this, ref pSource, true);
                                     break;
                                 case RttiOperatorType.BaseClassArray:
                                 case RttiOperatorType.ClassHierarchyDescriptor:
@@ -811,16 +719,15 @@ namespace MangledMaker.Core.Elements
                             {
                                 case Extended2OperatorType.DynamicInitializer:
                                 case Extended2OperatorType.DynamicAtExitDestructor:
-#pragma warning disable 665
+                                    // ReSharper disable once AssignmentInConditionalExpression
                                     if (this.isDynamicFullName = *pSource == '?')
-#pragma warning restore 665
                                     {
-                                        this.dynamicOwnerName = new FullName(this, ref pSource);
+                                        this.dynamicOwnerName = new(this, ref pSource);
                                         if (*pSource == '@')
                                             pSource++;
                                     }
                                     else
-                                        this.dynamicOwnerSymbol = new SymbolName(this, ref pSource);
+                                        this.dynamicOwnerSymbol = new(this, ref pSource);
                                     break;
                                 default:
                                     if (Enum.IsDefined(typeof(Extended2OperatorType), this.extended2Type))
@@ -849,34 +756,33 @@ namespace MangledMaker.Core.Elements
             {
                 case OperatorType.Ctor:
                 case OperatorType.Dtor:
-                    if (this.IsTemplate)
-                    {
-                        code.Append(this.templateArguments.Code);
-                        code.Append('@');
-                    }
-                    return code + this.className.Code;
+                    if (!this.IsTemplate) 
+                        return code + this.ClassNameSafe.Code;
+                    code.Append(this.TemplateArgumentsSafe.Code);
+                    code.Append('@');
+                    return code + this.ClassNameSafe.Code;
                 case OperatorType.Extended:
                     code.Append((char)this.extendedType);
                     switch (this.extendedType)
                     {
                         case ExtendedOperatorType.Namespace:
                             code.Append('0');
-                            return code + this.namespaceName.Code;
+                            return code + this.NamespaceNameSafe.Code;
                         case ExtendedOperatorType.String:
-                            return code + this.stringReference.Code;
+                            return code + this.StringReferenceSafe.Code;
                         case ExtendedOperatorType.UdtReturning:
-                            return code + this.udtOperator.Code;
+                            return code + this.UdtOperatorSafe.Code;
                         case ExtendedOperatorType.Rtti:
                             code.Append((char)this.rttiType);
                             switch (this.rttiType)
                             {
                                 case RttiOperatorType.TypeDescriptor:
-                                    return code + this.rttiDataType.Code;
+                                    return code + this.RttiDataTypeSafe.Code;
                                 case RttiOperatorType.BaseClassDescriptor:
-                                    code.Append(this.memberDisplacement.Code);
-                                    code.Append(this.virtualBaseTableDisplacement.Code);
-                                    code.Append(this.displacementInsideVirtualBaseTable.Code);
-                                    return code + this.attributes.Code;
+                                    code.Append(this.MemberDisplacementSafe.Code);
+                                    code.Append(this.VirtualBaseTableDisplacementSafe.Code);
+                                    code.Append(this.DisplacementInsideVirtualBaseTableSafe.Code);
+                                    return code + this.AttributesSafe.Code;
                             }
                             break;
                         case ExtendedOperatorType.Extended2:
@@ -886,8 +792,8 @@ namespace MangledMaker.Core.Elements
                                 case Extended2OperatorType.DynamicInitializer:
                                 case Extended2OperatorType.DynamicAtExitDestructor:
                                     if (!this.isDynamicFullName) 
-                                        return code + this.dynamicOwnerSymbol.Code;
-                                    code.Append(this.dynamicOwnerName.Code);
+                                        return code + this.DynamicOwnerSymbolSafe.Code;
+                                    code.Append(this.DynamicOwnerNameSafe.Code);
                                     return code + '@';
                             }
                             break;

@@ -9,26 +9,20 @@ namespace MangledMaker.Core.Elements
         { }
 
         public unsafe ScopedName(ComplexElement parent, ref char* pSource)
-            : base(parent)
-        {
+            : base(parent) =>
             this.Parse(ref pSource);
-        }
 
+        private ZName? zName;
         [Child]
-        public ZName ZName { get; set; }
+        public ZName ZName { get => this.zName ??= new(this, true); set => this.zName = value; }
 
+        private Scope? scope;
         [Child]
-        public Scope Scope { get; set; }
-
-        protected override void CreateEmptyElements()
-        {
-            if (this.ZName == null) this.ZName = new ZName(this, true);
-            if (this.Scope == null) this.Scope = new Scope(this);
-        }
+        public Scope Scope { get => this.scope ??= new(this); set => this.scope = value; }
 
         protected override DecoratedName GenerateName()
         {
-            var name = new DecoratedName(this, this.ZName.Name);
+            DecoratedName name = new(this, this.ZName.Name);
             if (name.Status != NodeStatus.None || this.Scope.Name.Length == 0) 
                 return name;
             name.Prepend("::");
@@ -39,7 +33,7 @@ namespace MangledMaker.Core.Elements
 
         private unsafe void Parse(ref char* pSource)
         {
-            this.ZName = new ZName(this, ref pSource, true);
+            this.ZName = new(this, ref pSource, true);
             var name = this.ZName.Name;
             //name.Assign();
             var cur = *pSource;
@@ -47,7 +41,7 @@ namespace MangledMaker.Core.Elements
                 && cur != '\0'
                 && cur != '@')
             {
-                this.Scope = new Scope(this, ref pSource);
+                this.Scope = new(this, ref pSource);
                 name.Append(this.Scope.Name);
                 cur = *pSource;
             }
@@ -59,7 +53,7 @@ namespace MangledMaker.Core.Elements
 
         protected override DecoratedName GenerateCode()
         {
-            var code = new DecoratedName(this, this.ZName.Code);
+            DecoratedName code = new(this, this.ZName.Code);
             if (!this.Scope.Code.IsEmpty)
                 code += this.Scope.Code;
             code += '@';

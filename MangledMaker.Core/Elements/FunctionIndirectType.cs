@@ -4,12 +4,21 @@ namespace MangledMaker.Core.Elements
 
     public sealed class FunctionIndirectType : ComplexElement
     {
-        private BasedType basedType;
+        private BasedType? basedType;
+
+        private BasedType BasedTypeSafe => this.basedType ??= new(this);
+
         private int completeLevel;
         private bool isBased;
         private bool isScoped;
-        private Scope scope;
-        private ThisType thisType;
+
+        private Scope ScopeSafe => this.scope ??= new(this);
+
+        private Scope? scope;
+        private ThisType? thisType;
+
+        private ThisType ThisTypeSafe => this.thisType ??= new(this);
+
 
         public FunctionIndirectType(ComplexElement parent, DecoratedName superType)
             : base(parent) =>
@@ -17,10 +26,8 @@ namespace MangledMaker.Core.Elements
 
         public unsafe FunctionIndirectType(ComplexElement parent, ref char* pSource,
                                            DecoratedName superType)
-            : this(parent, superType)
-        {
+            : this(parent, superType) =>
             this.Parse(ref pSource);
-        }
 
         [Input]
         public DecoratedName SuperType { get; set; }
@@ -56,28 +63,43 @@ namespace MangledMaker.Core.Elements
         [Child]
         public BasedType? BasedType => this.isBased ? this.basedType : null;
 
-        [Child]
-        public CallingConvention CallingConvention { get; private set; }
+        private CallingConvention? callingConvention;
 
         [Child]
-        public ReturnType ReturnType { get; private set; }
-
-        [Child]
-        public ArgumentTypes ArgumentTypes { get; private set; }
-
-        [Child]
-        public ThrowTypes ThrowTypes { get; private set; }
-
-        protected override void CreateEmptyElements()
+        public CallingConvention CallingConvention
         {
-            if (this.scope == null) this.scope = new Scope(this);
-            if (this.thisType == null) this.thisType = new ThisType(this);
-            if (this.basedType == null) this.basedType = new BasedType(this);
-            if (this.CallingConvention == null)
-                this.CallingConvention = new CallingConvention(this);
-            if (this.ReturnType == null) this.ReturnType = new ReturnType(this, new DecoratedName());
-            if (this.ArgumentTypes == null) this.ArgumentTypes = new ArgumentTypes(this);
-            if (this.ThrowTypes == null) this.ThrowTypes = new ThrowTypes(this);
+            get => this.callingConvention ??= new(this);
+            private set => this.callingConvention = value;
+        }
+
+        private ReturnType? returnType;
+
+
+        [Child]
+        public ReturnType ReturnType
+        {
+            get => this.returnType ??= new(this, new());
+            private set => this.returnType = value;
+        }
+
+        private ArgumentTypes? argumentTypes;
+
+
+        [Child]
+        public ArgumentTypes ArgumentTypes
+        {
+            get => this.argumentTypes ??= new(this);
+            private set => this.argumentTypes = value;
+        }
+
+        private ThrowTypes? throwTypes;
+
+
+        [Child]
+        public ThrowTypes ThrowTypes
+        {
+            get => this.throwTypes ??= new(this);
+            private set => this.throwTypes = value;
         }
 
         protected override DecoratedName GenerateName()
@@ -85,15 +107,15 @@ namespace MangledMaker.Core.Elements
             if (this.completeLevel == 0)
                 return new DecoratedName(this, NodeStatus.Truncated) + this.SuperType;
 
-            var classType = new DecoratedName(this);
-            var fitType = new DecoratedName(this, this.SuperType);
+            DecoratedName classType = new(this);
+            DecoratedName fitType = new(this, this.SuperType);
 
             if (this.isScoped)
             {
                 fitType.Prepend("::");
                 if (this.completeLevel > 1)
                 {
-                    fitType.Prepend(this.scope.Name);
+                    fitType.Prepend(this.ScopeSafe.Name);
                     fitType.Prepend(' ');
                 }
                 else
@@ -101,19 +123,19 @@ namespace MangledMaker.Core.Elements
                 if (this.completeLevel <= 2)
                     return NodeStatus.Truncated + fitType;
                 if (this.UnDecorator.DoThisTypes)
-                    classType.Assign(this.thisType.Name);
+                    classType.Assign(this.ThisTypeSafe.Name);
                 else
-                    classType.Skip(this.thisType.Name);
+                    classType.Skip(this.ThisTypeSafe.Name);
             }
 
             if (this.isBased)
                 if (this.UnDecorator.DoMicrosoftKeywords)
                 {
-                    fitType.Prepend(this.basedType.Name);
+                    fitType.Prepend(this.BasedTypeSafe.Name);
                     fitType.Prepend(' ');
                 }
                 else
-                    fitType.Skip(this.basedType.Name);
+                    fitType.Skip(this.BasedTypeSafe.Name);
 
             if (this.UnDecorator.DoMicrosoftKeywords)
                 fitType.Prepend(this.CallingConvention.Name);
@@ -122,9 +144,9 @@ namespace MangledMaker.Core.Elements
             if (!this.SuperType.IsEmpty)
                 fitType.Assign('(' + fitType + ')');
 
-            var pDeclarator = new DecoratedName(this);
+            DecoratedName pDeclarator = new(this);
             this.ReturnType.Declarator = pDeclarator;
-            var returnType = this.ReturnType.Name;
+            var returnTypeName = this.ReturnType.Name;
             fitType.Append('(');
             fitType.Append(this.ArgumentTypes.Name);
             fitType.Append(')');
@@ -136,7 +158,7 @@ namespace MangledMaker.Core.Elements
                 fitType.Skip(this.ThrowTypes.Name);
             pDeclarator.Assign(fitType);
 
-            return returnType;
+            return returnTypeName;
         }
 
         private unsafe void Parse(ref char* pSource)
@@ -185,7 +207,7 @@ namespace MangledMaker.Core.Elements
                 if (*pSource != '\0')
                 {
                     this.completeLevel++;
-                    this.scope = new Scope(this, ref pSource);
+                    this.scope = new(this, ref pSource);
                 }
 
                 if (*pSource == '\0')
@@ -198,16 +220,16 @@ namespace MangledMaker.Core.Elements
                     return;
                 }
                 pSource++;
-                this.thisType = new ThisType(this, ref pSource);
+                this.thisType = new(this, ref pSource);
             }
 
             if (this.isBased)
-                this.basedType = new BasedType(this, ref pSource);
+                this.basedType = new(this, ref pSource);
 
-            this.CallingConvention = new CallingConvention(this, ref pSource);
-            this.ReturnType = new ReturnType(this, ref pSource, new DecoratedName());
-            this.ArgumentTypes = new ArgumentTypes(this, ref pSource);
-            this.ThrowTypes = new ThrowTypes(this, ref pSource);
+            this.CallingConvention = new(this, ref pSource);
+            this.ReturnType = new(this, ref pSource, new());
+            this.ArgumentTypes = new(this, ref pSource);
+            this.ThrowTypes = new(this, ref pSource);
         }
 
         protected override DecoratedName GenerateCode()
@@ -229,15 +251,15 @@ namespace MangledMaker.Core.Elements
             {
                 if (this.completeLevel == 1) return code;
 
-                code.Append(this.scope.Code);
+                code.Append(this.ScopeSafe.Code);
 
                 if (this.completeLevel == 2) return code;
 
-                code.Append(this.thisType.Code);
+                code.Append(this.ThisTypeSafe.Code);
             }
 
             if (this.isBased)
-                code.Append(this.basedType.Code);
+                code.Append(this.BasedTypeSafe.Code);
 
             code.Append(this.CallingConvention.Code + this.ReturnType.Code
                         + this.ArgumentTypes.Code + this.ThrowTypes.Code);

@@ -32,7 +32,7 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public bool? IsVoid
         {
-            get { return this.IsPtr ? this.isVoid : (bool?)null; }
+            get => this.IsPtr ? this.isVoid : null;
             set
             {
                 if (value != null) this.isVoid = (bool)value;
@@ -43,7 +43,7 @@ namespace MangledMaker.Core.Elements
         [Setting]
         public bool IsArray
         {
-            get { return this.isArray; }
+            get => this.isArray;
             set
             {
                 this.isArray = value;
@@ -51,18 +51,20 @@ namespace MangledMaker.Core.Elements
             }
         }
 
+        private ArrayType? arrayType;
         [Child]
-        public ArrayType ArrayType { get; private set; }
-
-        [Child]
-        public BasicDataType BasicDataType { get; private set; }
-
-        protected override void CreateEmptyElements()
+        public ArrayType ArrayType
         {
-            if (this.ArrayType == null) this.ArrayType = new ArrayType(this, this.SuperType);
-            if (this.BasicDataType == null)
-                this.BasicDataType =
-                    new BasicDataType(this, this.SuperType);
+            get => this.arrayType ??= new(this, this.SuperType);
+            private set => this.arrayType = value;
+        }
+
+        private BasicDataType? basicDataType;
+        [Child]
+        public BasicDataType BasicDataType
+        {
+            get => this.basicDataType ??= new(this, this.SuperType);
+            private set => this.basicDataType = value;
         }
 
         protected override DecoratedName GenerateName()
@@ -70,11 +72,9 @@ namespace MangledMaker.Core.Elements
             if (this.isMissing)
                 return new DecoratedName(this, NodeStatus.Truncated) + this.SuperType;
             if (this.IsPtr && this.isVoid)
-            {
-                if (this.SuperType.IsEmpty)
-                    return new DecoratedName(this, "void");
-                return new DecoratedName(this, "void ") + this.SuperType;
-            }
+                return this.SuperType.IsEmpty
+                    ? new(this, "void")
+                    : new DecoratedName(this, "void ") + this.SuperType;
 
             if (this.isArray)
             {
@@ -83,7 +83,7 @@ namespace MangledMaker.Core.Elements
             }
 
             this.BasicDataType.SuperType = this.SuperType;
-            var result = new DecoratedName(this, this.BasicDataType.Name);
+            DecoratedName result = new(this, this.BasicDataType.Name);
             if (this.SuperType.IsComArray)
                 result.Prepend("cli::array<");
             else if (this.SuperType.IsPinnedPointer)
@@ -112,19 +112,19 @@ namespace MangledMaker.Core.Elements
             {
                 this.isArray = true;
                 pSource++;
-                this.ArrayType = new ArrayType(this, ref pSource, this.SuperType);
+                this.ArrayType = new(this, ref pSource, this.SuperType);
                 return;
             }
             this.isArray = false;
-            this.BasicDataType = new BasicDataType(this, ref pSource, this.SuperType);
+            this.BasicDataType = new(this, ref pSource, this.SuperType);
         }
 
         protected override DecoratedName GenerateCode()
         {
-            if (this.isMissing) 
-                return new DecoratedName(this, '\0');
+            if (this.isMissing)
+                return new(this, '\0');
             if (this.IsPtr && this.isVoid)
-                return new DecoratedName(this, 'X');
+                return new(this, 'X');
             if (this.isArray)
             {
                 this.ArrayType.SuperType = this.SuperType;
