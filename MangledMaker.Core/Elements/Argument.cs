@@ -36,13 +36,13 @@ namespace MangledMaker.Core.Elements
 
         [Child] public PrimaryDataType Type
         {
-            get => this.type ??= new(this, new DecoratedName());
+            get => this.type ??= new(this, new());
             private set => this.type = value;
         }
 
         protected override DecoratedName GenerateName()
         {
-            var result = new DecoratedName(this);
+            DecoratedName result = new(this);
             switch (this.ArgumentType)
             {
                 case ArgumentTypes.Saved1:
@@ -74,7 +74,7 @@ namespace MangledMaker.Core.Elements
             }
             else
             {
-                this.Type = new(this, ref pSource, new DecoratedName());
+                this.Type = new(this, ref pSource, new());
                 this.ArgumentType = ArgumentTypes.Type;
                 var result = this.Type.Name;
                 if (result.Length > 1 && !this.UnDecorator.ArgList.IsFull)
@@ -84,7 +84,7 @@ namespace MangledMaker.Core.Elements
 
         protected override DecoratedName GenerateCode()
         {
-            var result = new DecoratedName(this);
+            DecoratedName result = new(this);
             switch (this.ArgumentType)
             {
                 case ArgumentTypes.Saved1:

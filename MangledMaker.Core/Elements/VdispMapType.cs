@@ -8,7 +8,7 @@ namespace MangledMaker.Core.Elements
             : base(parent)
         {
             this.SuperType = superType;
-            this.Scope = new Scope(this);
+            this.Scope = new(this);
         }
 
         public unsafe VdispMapType(ComplexElement parent, ref char* pSource,
@@ -16,7 +16,9 @@ namespace MangledMaker.Core.Elements
             : base(parent)
         {
             this.SuperType = superType;
-            this.Parse(ref pSource);
+            this.Scope = new(this, ref pSource);
+            if (*pSource == '@')
+                pSource++;
         }
 
         [Input]
@@ -28,23 +30,16 @@ namespace MangledMaker.Core.Elements
 
         protected override DecoratedName GenerateName()
         {
-            var vdispMapName = new DecoratedName(this, this.SuperType);
+            DecoratedName vdispMapName = new(this, this.SuperType);
             vdispMapName += "{for ";
             vdispMapName += this.Scope.Name;
             vdispMapName += '}';
             return vdispMapName;
         }
 
-        private unsafe void Parse(ref char* pSource)
-        {
-            this.Scope = new Scope(this, ref pSource);
-            if (*pSource == '@')
-                pSource++;
-        }
-
         protected override DecoratedName GenerateCode()
         {
-            var code = new DecoratedName(this);
+            DecoratedName code = new(this);
             code += this.Scope.Code;
             code += '@';
             return code;

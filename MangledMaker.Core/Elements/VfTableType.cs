@@ -1,5 +1,6 @@
 namespace MangledMaker.Core.Elements
 {
+    using System;
     using System.Collections.Generic;
     using Attributes;
 
@@ -12,63 +13,66 @@ namespace MangledMaker.Core.Elements
         public VfTableType(ComplexElement parent, DecoratedName superType)
             : base(parent)
         {
-            this.OwnerHeirarchy = new List<Scope>();
+            this.OwnerHierarchy = new();
             this.SuperType = superType;
-            this.StorageConvention = new StorageConvention(this);
+            this.StorageConvention = new(this);
         }
 
         public unsafe VfTableType(ComplexElement parent, ref char* pSource,
                                   DecoratedName superType)
             : base(parent)
         {
-            this.OwnerHeirarchy = new List<Scope>();
+            this.OwnerHierarchy = new();
             this.SuperType = superType;
             this.Parse(ref pSource);
+            this.StorageConvention ??= new(this);
         }
 
         [Input]
         public DecoratedName SuperType { get; set; }
 
         [Child]
-        public List<Scope> OwnerHeirarchy { get; private set; }
+        public List<Scope> OwnerHierarchy { get; private set; }
 
         [Child]
         public StorageConvention StorageConvention { get; private set; }
 
         #region ISpawnsChildren Members
 
-        public Element CreateChild()
-        {
-            return new Scope(this);
-        }
+        public Element CreateChild() => new Scope(this);
 
         #endregion
 
         protected override DecoratedName GenerateName()
         {
             var vxTableName = new DecoratedName(this, this.SuperType);
-            if (vxTableName.IsValid && !this.isMissingList)
+            switch (vxTableName.IsValid)
             {
-                vxTableName.Assign(this.StorageConvention.Name + (' ' + vxTableName));
-                if (!vxTableName.IsValid || this.OwnerHeirarchy.Count == 0) 
-                    return vxTableName;
-                vxTableName += "for{ ";
-                for (var i = 0; i < this.OwnerHeirarchy.Count; i++)
+                case true when !this.isMissingList:
                 {
-                    vxTableName += '`';
-                    vxTableName += this.OwnerHeirarchy[i].Name;
-                    vxTableName += '\'';
-                    if (i != this.OwnerHeirarchy.Count - 1)
-                        vxTableName += "s ";
+                    vxTableName.Assign(this.StorageConvention.Name + (' ' + vxTableName));
+                    if (!vxTableName.IsValid || this.OwnerHierarchy.Count == 0) 
+                        return vxTableName;
+                    vxTableName += "for{ ";
+                    for (var i = 0; i < this.OwnerHierarchy.Count; i++)
+                    {
+                        vxTableName += '`';
+                        vxTableName += this.OwnerHierarchy[i].Name;
+                        vxTableName += '\'';
+                        if (i != this.OwnerHierarchy.Count - 1)
+                            vxTableName += "s ";
+                    }
+                    if (!vxTableName.IsValid) 
+                        return vxTableName;
+                    if (this.isMissingTerminator)
+                        vxTableName += NodeStatus.Truncated;
+                    vxTableName += '}';
+                    break;
                 }
-                if (!vxTableName.IsValid) 
-                    return vxTableName;
-                if (this.isMissingTerminator)
-                    vxTableName += NodeStatus.Truncated;
-                vxTableName += '}';
+                case true:
+                    vxTableName.Assign(NodeStatus.Truncated + vxTableName);
+                    break;
             }
-            else if (vxTableName.IsValid)
-                vxTableName.Assign(NodeStatus.Truncated + vxTableName);
             return vxTableName;
         }
 
@@ -77,20 +81,20 @@ namespace MangledMaker.Core.Elements
             if (this.SuperType.IsValid && (*pSource != '\0'))
             {
                 this.isMissingList = false;
-                this.StorageConvention = new StorageConvention(this, ref pSource);
+                this.StorageConvention = new(this, ref pSource);
                 if (!this.StorageConvention.Name.IsValid) 
                     return;
                 if (*pSource != '@')
                 {
-                    this.OwnerHeirarchy.Clear();
-                    var status = new DecoratedName();
+                    this.OwnerHierarchy.Clear();
+                    DecoratedName status = new();
                     while (status.IsValid &&
                            *pSource != '\0' &&
                            *pSource != '@')
                     {
-                        var s = new Scope(this, ref pSource);
+                        Scope s = new(this, ref pSource);
                         status = s.Name;
-                        this.OwnerHeirarchy.Add(s);
+                        this.OwnerHierarchy.Add(s);
                         if (*pSource == '@')
                             pSource++;
                     }
@@ -106,25 +110,30 @@ namespace MangledMaker.Core.Elements
 
         protected override DecoratedName GenerateCode()
         {
-            var vxTableCode = new DecoratedName(this);
-            if (this.SuperType.IsValid && !this.isMissingList)
+            DecoratedName vxTableCode = new(this);
+            switch (this.SuperType.IsValid)
             {
-                vxTableCode += this.StorageConvention.Code;
-                if (!vxTableCode.IsValid) 
-                    return vxTableCode;
-                if (this.OwnerHeirarchy.Count != 0)
+                case true when !this.isMissingList:
                 {
-                    vxTableCode += "for{ ";
-                    foreach (var scope in this.OwnerHeirarchy)
+                    vxTableCode += this.StorageConvention.Code;
+                    if (!vxTableCode.IsValid) 
+                        return vxTableCode;
+                    if (this.OwnerHierarchy.Count != 0)
                     {
-                        vxTableCode += scope.Code;
-                        vxTableCode += '@';
+                        vxTableCode += "for{ ";
+                        foreach (var scope in this.OwnerHierarchy)
+                        {
+                            vxTableCode += scope.Code;
+                            vxTableCode += '@';
+                        }
                     }
+                    vxTableCode += this.isMissingTerminator ? '\0' : '@';
+                    break;
                 }
-                vxTableCode += this.isMissingTerminator ? '\0' : '@';
+                case true:
+                    vxTableCode += '\0';
+                    break;
             }
-            else if (this.SuperType.IsValid)
-                vxTableCode += '\0';
             return vxTableCode;
         }
     }

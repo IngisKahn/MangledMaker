@@ -1,11 +1,10 @@
 namespace MangledMaker.Core.Elements
 {
+    using System.Diagnostics.CodeAnalysis;
     using Attributes;
 
     public sealed class ZName : ComplexElement
     {
-        #region ZNameType enum
-
         public enum ZNameType
         {
             Index,
@@ -15,28 +14,22 @@ namespace MangledMaker.Core.Elements
             Name
         }
 
-        #endregion
-
         private const string template = "template-parameter-", generic = "generic-type-";
 
-        private CustomName genericType;
-        private TerminatedName simpleName;
-        private TemplateName templateName;
-        private CustomName templateParameter;
+        private CustomName? genericType;
+        private TerminatedName? simpleName;
+        private TemplateName? templateName;
+        private CustomName? templateParameter;
 
         private int zIndex;
 
-        public ZName(ComplexElement parent, bool updateChachedNames)
-            : base(parent)
-        {
-            this.UpdateCachedNames = updateChachedNames;
-        }
+        public ZName(ComplexElement parent, bool updateCachedNames)
+            : base(parent) =>
+            this.UpdateCachedNames = updateCachedNames;
 
-        public unsafe ZName(ComplexElement parent, ref char* pSource, bool updateChachedNames)
-            : this(parent, updateChachedNames)
-        {
+        public unsafe ZName(ComplexElement parent, ref char* pSource, bool updateCachedNames)
+            : this(parent, updateCachedNames) =>
             this.Parse(ref pSource);
-        }
 
         [Input]
         public bool UpdateCachedNames { get; private set; }
@@ -47,49 +40,21 @@ namespace MangledMaker.Core.Elements
         [Setting(RangeFrom = 0, RangeTo = 9)]
         public int? ZIndex
         {
-            get { return this.Type == ZNameType.Index ? this.zIndex : (int?)null; }
+            get => this.Type == ZNameType.Index ? this.zIndex : (int?)null;
             set { if (value != null) this.zIndex = (int)value; }
         }
 
         [Child]
-        public TemplateName TemplateName
-        {
-            get { return this.Type == ZNameType.Template ? this.templateName : null; }
-            set { this.templateName = value; }
-        }
+        public TemplateName? TemplateName => this.Type == ZNameType.Template ? this.templateName ??= new(this, false) : null;
 
         [Child]
-        public CustomName TemplateParameter
-        {
-            get { return this.Type == ZNameType.TemplateParameter ? this.templateParameter : null; }
-            set { this.templateParameter = value; }
-        }
+        public CustomName? TemplateParameter => this.Type == ZNameType.TemplateParameter ? this.templateParameter ??= new(this, ZName.template) : null;
 
         [Child]
-        public CustomName GenericType
-        {
-            get { return this.Type == ZNameType.GenericType ? this.genericType : null; }
-            set { this.genericType = value; }
-        }
+        public CustomName? GenericType => this.Type == ZNameType.GenericType ? this.genericType ??= new(this, ZName.generic) : null;
 
         [Child]
-        public TerminatedName SimpleName
-        {
-            get { return this.Type == ZNameType.Name ? this.simpleName : null; }
-            set { this.simpleName = value; }
-        }
-
-        protected override void CreateEmptyElements()
-        {
-            if (this.templateName == null) 
-                this.templateName = new TemplateName(this, false);
-            if (this.templateParameter == null)
-                this.templateParameter = new CustomName(this, template);
-            if (this.genericType == null) 
-                this.genericType = new CustomName(this, generic);
-            if (this.simpleName == null) 
-                this.simpleName = new TerminatedName(this, '@');
-        }
+        public TerminatedName? SimpleName => this.Type == ZNameType.Name ? this.simpleName ??= new(this, '@') : null;
 
         protected override DecoratedName GenerateName()
         {
@@ -99,16 +64,16 @@ namespace MangledMaker.Core.Elements
                 case ZNameType.Index:
                     return this.UnDecorator.ZNameList[this.zIndex];
                 case ZNameType.Template:
-                    result = this.templateName.Name;
+                    result = this.TemplateName!.Name;
                     break;
                 case ZNameType.TemplateParameter:
-                    result = this.templateParameter.Name;
+                    result = this.TemplateParameter!.Name;
                     break;
                 case ZNameType.GenericType:
-                    result = this.genericType.Name;
+                    result = this.GenericType!.Name;
                     break;
                 default:
-                    result = this.simpleName.Name;
+                    result = this.SimpleName!.Name;
                     break;
             }
 
@@ -124,7 +89,7 @@ namespace MangledMaker.Core.Elements
             //	Handle 'zname-replicators', otherwise an actual name
             // if ZName is a digit then return the ZNameList item
             var zcurrentCharacter = *pSource - '0';
-            if (zcurrentCharacter >= 0 && zcurrentCharacter <= 9)
+            if (zcurrentCharacter is >= 0 and <= 9)
             {
                 pSource++;	// Skip past the replicator
                 //	And return the indexed name
@@ -136,27 +101,27 @@ namespace MangledMaker.Core.Elements
             if (*pSource == '?')
             {
                 this.Type = ZNameType.Template;
-                this.templateName = new TemplateName(this, ref pSource, false);
+                this.templateName = new(this, ref pSource, false);
                 if (*pSource++ != '@')
                     if (*--pSource == '\0')
                         this.IsInvalid = true;
                     else
                         this.IsTruncated = true;
             }
-            else if (ConsumeString(template, ref pSource))
+            else if (ZName.ConsumeString(ZName.template, ref pSource))
             {
-                this.templateParameter = new CustomName(this, ref pSource, template);
+                this.templateParameter = new(this, ref pSource, ZName.template);
                 this.Type = ZNameType.TemplateParameter;
             }
-            else if (ConsumeString(generic, ref pSource))
+            else if (ZName.ConsumeString(ZName.generic, ref pSource))
             {
-                this.genericType = new CustomName(this, ref pSource, generic);
+                this.genericType = new(this, ref pSource, ZName.generic);
                 this.Type = ZNameType.GenericType;
             }
             else
             {
                 //	Extract the 'zname' to the terminator
-                this.simpleName = new TerminatedName(this, ref pSource, '@');
+                this.simpleName = new(this, ref pSource, '@');
                 this.Type = ZNameType.Name;
             }
 
@@ -175,21 +140,14 @@ namespace MangledMaker.Core.Elements
             return true;
         }
 
-        protected override DecoratedName GenerateCode()
-        {
-            switch (this.Type)
+        protected override DecoratedName GenerateCode() =>
+            this.Type switch
             {
-                case ZNameType.Index:
-                    return new DecoratedName(this, (char)(this.zIndex + '0'));
-                case ZNameType.Template:
-                    return this.templateName.Code;
-                case ZNameType.TemplateParameter:
-                    return new DecoratedName(this, template) + this.templateParameter.Code;
-                case ZNameType.GenericType:
-                    return new DecoratedName(this, generic) + this.genericType.Code;
-                default:
-                    return this.simpleName.Code;
-            }
-        }
+                ZNameType.Index => new(this, (char) (this.zIndex + '0')),
+                ZNameType.Template => this.TemplateName!.Code,
+                ZNameType.TemplateParameter => new DecoratedName(this, ZName.template) + this.TemplateParameter!.Code,
+                ZNameType.GenericType => new DecoratedName(this, ZName.generic) + this.GenericType!.Code,
+                _ => this.SimpleName!.Code
+            };
     }
 }

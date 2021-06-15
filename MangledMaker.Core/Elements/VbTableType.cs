@@ -8,7 +8,7 @@ namespace MangledMaker.Core.Elements
             : base(parent)
         {
             this.SuperType = superType;
-            this.TableType = new VfTableType(this, superType);
+            this.TableType = new(this, superType);
         }
 
         public unsafe VbTableType(ComplexElement parent, ref char* pSource,
@@ -16,7 +16,7 @@ namespace MangledMaker.Core.Elements
             : base(parent)
         {
             this.SuperType = superType;
-            this.Parse(ref pSource);
+            this.TableType = new(this, ref pSource, this.SuperType);
         }
 
         [Input]
@@ -30,11 +30,6 @@ namespace MangledMaker.Core.Elements
         {
             this.TableType.SuperType = this.SuperType;
             return this.TableType.Name;
-        }
-
-        private unsafe void Parse(ref char* pSource)
-        {
-            this.TableType = new VfTableType(this, ref pSource, this.SuperType);
         }
 
         protected override DecoratedName GenerateCode()

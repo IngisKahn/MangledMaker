@@ -17,7 +17,8 @@ namespace MangledMaker.Core.Elements
 
         private Ecsus ecsu;
 
-        private EnumType enumType;
+        private EnumType? enumType;
+        private EnumType EnumTypeSafe => this.enumType ??= new(this);
 
         private bool isMissing;
 
@@ -26,15 +27,13 @@ namespace MangledMaker.Core.Elements
         { }
 
         public unsafe UserDefinedType(ComplexElement parent, ref char* pSource)
-            : this(parent)
-        {
+            : this(parent) =>
             this.Parse(ref pSource);
-        }
 
         [Setting]
         public Ecsus Ecsu
         {
-            get { return this.ecsu; }
+            get => this.ecsu;
             set
             {
                 this.ecsu = value;
@@ -43,27 +42,19 @@ namespace MangledMaker.Core.Elements
         }
 
         [Child]
-        public EnumType EnumType
-        {
-            get { return this.ecsu == Ecsus.Enum ? this.enumType : null; }
-        }
+        public EnumType? EnumType => this.ecsu == Ecsus.Enum ? this.enumType : null;
 
+        private EcsuName? escuName;
         [Child]
-        public EcsuName EcsuName { get; private set; }
-
-        protected override void CreateEmptyElements()
-        {
-            if (this.enumType == null) this.enumType = new EnumType(this);
-            if (this.EcsuName == null) this.EcsuName = new EcsuName(this);
-        }
+        public EcsuName EcsuName { get => this.escuName ??= new(this); private set => this.escuName = value; }
 
         protected override DecoratedName GenerateName()
         {
             if (this.isMissing)
-                return new DecoratedName(this, "`unknown ecsu'");
+                return new(this, "`unknown ecsu'");
 
             var doPrefix = this.UnDecorator.DoEcsu && !this.UnDecorator.DoNameOnly;
-            var prefix = new DecoratedName(this);
+            DecoratedName prefix = new(this);
 
             switch (this.ecsu)
             {
@@ -79,7 +70,7 @@ namespace MangledMaker.Core.Elements
                 case Ecsus.Enum:
                     doPrefix = this.UnDecorator.DoEcsu;
                     prefix.Assign("enum ");
-                    prefix += this.enumType.Name;
+                    prefix += this.EnumTypeSafe.Name;
                     break;
                 case Ecsus.Coclass:
                     prefix.Assign("coclass ");
@@ -88,11 +79,11 @@ namespace MangledMaker.Core.Elements
                     prefix.Assign("cointerface ");
                     break;
             }
-            var ecsuDataType = new DecoratedName(this);
+            DecoratedName ecsuDataType = new(this);
             if (doPrefix)
                 ecsuDataType.Assign(prefix);
 
-            return new DecoratedName(ecsuDataType.Append(this.EcsuName.Name));
+            return new(ecsuDataType.Append(this.EcsuName.Name));
         }
 
         private unsafe void Parse(ref char* pSource)
@@ -114,7 +105,7 @@ namespace MangledMaker.Core.Elements
                     break;
                 case 'W':
                     this.ecsu = Ecsus.Enum;
-                    this.enumType = new EnumType(this, ref pSource);
+                    this.enumType = new(this, ref pSource);
                     break;
                 case 'X':
                     this.ecsu = Ecsus.Coclass;
@@ -124,12 +115,12 @@ namespace MangledMaker.Core.Elements
                     break;
             }
 
-            this.EcsuName = new EcsuName(this, ref pSource);
+            this.EcsuName = new(this, ref pSource);
         }
 
         protected override DecoratedName GenerateCode()
         {
-            var code = new DecoratedName(this);
+            DecoratedName code = new(this);
 
             if (this.isMissing) 
                 return code + this.EcsuName.Code;
@@ -146,7 +137,7 @@ namespace MangledMaker.Core.Elements
                     break;
                 case Ecsus.Enum:
                     code.Assign('W');
-                    code += this.enumType.Code;
+                    code += this.EnumTypeSafe.Code;
                     break;
                 case Ecsus.Coclass:
                     code.Assign('X');
