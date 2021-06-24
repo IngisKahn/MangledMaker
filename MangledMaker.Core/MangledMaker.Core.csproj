@@ -8,11 +8,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>1701;1702;IDE0002</NoWarn>
+    <DefineConstants>TRACE;VERS_32BIT</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>1701;1702;IDE0002</NoWarn>
+    <DefineConstants>TRACE;VERS_32BIT</DefineConstants>
   </PropertyGroup>
 
 </Project>
